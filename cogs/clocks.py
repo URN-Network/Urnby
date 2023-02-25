@@ -53,7 +53,10 @@ class Clocks(commands.Cog):
     async def cog_before_invoke(self, ctx):
         now = datetime.datetime.now(tz)
         now = now.replace(microsecond = 0)
-        print(f'{now.isoformat()} [{ctx.guild.id}] - Command {ctx.command.qualified_name} by {ctx.author.name} - {ctx.author.id}', flush=True)
+        guild_id = ctx.guild.id
+        if ctx.guild.id == None:
+            guild_id = 'DM'
+        print(f'{now.isoformat()} [{guild_id}] - Command {ctx.command.qualified_name} by {ctx.author.name} - {ctx.author.id}', flush=True)
         command = {'command_name': ctx.command.qualified_name, 'options': str(ctx.selected_options), 'datetime': now.isoformat(), 'user': ctx.author.id, 'user_name': ctx.author.name, 'channel_name': ctx.channel.name}
         await self.store_command(ctx.guild.id, command)
         return
