@@ -143,7 +143,7 @@ class Clocks(commands.Cog):
         actives = await self.get_all_actives(ctx.guild.id)
         now = int(datetime.datetime.now().timestamp())
         if len(actives) == 0:
-            await ctx.send_response(content=f"There are no active users at this time")
+            await ctx.send_response(content=f"There are no active users at this time", ephemeral=not public)
             return
         content = "_ _\nActive Users:\n```"
         for active in actives:
