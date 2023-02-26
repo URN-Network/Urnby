@@ -195,27 +195,27 @@ class Clocks(commands.Cog):
     @is_member_visible()
     @is_command_channel()
     async def _clockout(self, ctx):
-        res = await self._inner_clockout(ctx.guild.id, ctx.author.id)
+        res = await self._inner_clockout(ctx, ctx.author.id)
         await ctx.send_response(content=res['content'])
     
-    async def _inner_clockout(self, guild_id, author_id):
+    async def _inner_clockout(self, ctx, user_id):
         # Session Check
-        session = await self.get_session(guild_id)
+        session = await self.get_session(ctx.guild.id)
         if not session:
             return {'status': False, 'record': None, 'content': f'Sorry, there is no current session to clock out of'}
         
         # Ensure user was unique in active
-        actives = await self.get_all_actives(guild_id)
-        found = [_ for _ in actives if _['user'] == author_id]
+        actives = await self.get_all_actives(ctx.guild.id)
+        found = [_ for _ in actives if _['user'] == user_id]
         if not found:
             return {'status': False, 'record': None, 'content': f'Did not find you in active records, did you forget to clock in?'}
         if len(found) > 1:
             #error somehow they are clocked in more then once
-            raise ValueError(f'Error - user was clocked in more then once guild: {guild_id} - user: {author_id}')
-            return {'status': False, 'record': found, 'content': f'Error - user was clocked in more then once guild: {guild_id} - user: {author_id}'}
+            raise ValueError(f'Error - user was clocked in more then once guild: {ctx.guild.id} - user: {user_id}')
+            return {'status': False, 'record': found, 'content': f'Error - user was clocked in more then once guild: {ctx.guild.id} - user: {user_id}'}
         record = found[0]
         
-        res = await self.remove_active_record(guild_id, record)
+        res = await self.remove_active_record(ctx.guild.id, record)
         
         
         _out = datetime.datetime.now(tz)
@@ -223,12 +223,12 @@ class Clocks(commands.Cog):
         record['out_timestamp'] = int(_out.timestamp())
         record['_DEBUG_delta'] = get_hours_from_secs(record['out_timestamp']-record['in_timestamp'])
         
-        res = await self.store_new_historical(guild_id, record)
+        res = await self.store_new_historical(ctx.guild.id, record)
         
         if not res:
             return {'status': False, 'record': record, 'content': f'Failed to store record to historical, contact admin\n{found}'}
-        tot = await self.get_user_hours(guild_id, author_id)
-        user = await ctx.guild.fetch_member(author_id)
+        tot = await self.get_user_hours(ctx.guild.id, user_id)
+        user = await ctx.guild.fetch_member(user_id)
         return {'status': True,'record': record, 'content': f'{user.display_name} Successfuly clocked out at <t:{record["out_timestamp"]}>, stored record for {record["_DEBUG_delta"]} hours. Your total is at {round(tot, 2)}'}
     
 
@@ -305,7 +305,7 @@ class Clocks(commands.Cog):
                 fails = []
                 
                 for active in actives:
-                    res = await self._inner_clockout(ctx.guild.id, active["user"])
+                    res = await self._inner_clockout(ctx, active["user"])
                     close_outs.append((res['record']['_DEBUG_user_name'], res['record']['_DEBUG_delta']))
                     if not res['status']:
                         fails.append(active)
