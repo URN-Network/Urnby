@@ -147,7 +147,7 @@ class Clocks(commands.Cog):
             return
         content = "_ _\nActive Users:\n```"
         for active in actives:
-            user = await self.bot.get_or_fetch_user(active['user'])
+            user = await ctx.guild.fetch_member(active['user'])
             delta = get_hours_from_secs(now - active['in_timestamp'])
             content += f"\n{user.display_name:20}{delta:.2f} hours active"
         content += "```"
