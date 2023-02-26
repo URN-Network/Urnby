@@ -228,8 +228,8 @@ class Clocks(commands.Cog):
         if not res:
             return {'status': False, 'record': record, 'content': f'Failed to store record to historical, contact admin\n{found}'}
         tot = await self.get_user_hours(guild_id, author_id)
-        user = await self.bot.get_or_fetch_user(author_id)
-        return {'status': True,'record': record, 'content': f'{user.display_name} Successfuly clocked out and stored record for {record["_DEBUG_delta"]} hours. Your total is at {round(tot, 2)}'}
+        user = await ctx.guild.fetch_member(author_id)
+        return {'status': True,'record': record, 'content': f'{user.display_name} Successfuly clocked out at <t:{record["out_timestamp"]}>, stored record for {record["_DEBUG_delta"]} hours. Your total is at {round(tot, 2)}'}
     
 
     # ==============================================================================
