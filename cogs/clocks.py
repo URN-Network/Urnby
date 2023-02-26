@@ -101,7 +101,7 @@ class Clocks(commands.Cog):
     # ==============================================================================
     # DEBUG FUNCTIONS NEEDS TO BE DELETED
     # ==============================================================================
-    @commands.slash_command(name="admincommand")
+    @commands.slash_command(name="admincommand", description='Command to confirm the user is an admin')
     @is_admin()
     async def _admincommand(self, ctx):
         await ctx.send_response(content='You\'re an admin!')
@@ -440,7 +440,7 @@ class Clocks(commands.Cog):
         tot = await self.get_user_hours(ctx.guild.id, member.id)
         await ctx.send_response(content=f'{member.display_name} has accrued {tot:.2f} hours', ephemeral=True)
     
-    @commands.slash_command(name="getusersessions")
+    @commands.slash_command(name="getusersessions", description='Ephemeral - Get list of user\'s historical sessions')
     @is_member()
     async def _cmd_get_user_sessions(self, ctx, _id: discord.Option(name="user_id", input_type=int, required=True)):
         try:
@@ -493,7 +493,7 @@ class Clocks(commands.Cog):
         await ctx.send_response(content=f'{id} has {secs}')
     
     #TODO condense this with slash command of same name
-    @commands.user_command(name="Get User Sessions", description='Ephemeral - Get list of user\'s historical sessions')
+    @commands.user_command(name="Get User Sessions")
     @is_member()
     async def _get_user_sessions(self, ctx, member: discord.Member):
         res = await self.get_historical_user(ctx.guild.id, member.id)
