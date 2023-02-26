@@ -53,12 +53,14 @@ class Clocks(commands.Cog):
     async def cog_before_invoke(self, ctx):
         now = datetime.datetime.now(tz)
         now = now.replace(microsecond = 0)
-        guild_id = ctx.guild.id
-        if ctx.guild.id == None:
+        guild_id = None
+        if not ctx.guild:
             guild_id = 'DM'
+        else:
+            guild_id = ctx.guild.id
         print(f'{now.isoformat()} [{guild_id}] - Command {ctx.command.qualified_name} by {ctx.author.name} - {ctx.author.id}', flush=True)
         command = {'command_name': ctx.command.qualified_name, 'options': str(ctx.selected_options), 'datetime': now.isoformat(), 'user': ctx.author.id, 'user_name': ctx.author.name, 'channel_name': ctx.channel.name}
-        await self.store_command(ctx.guild.id, command)
+        await self.store_command(guild_id, command)
         return
     
     # ==============================================================================
@@ -67,14 +69,22 @@ class Clocks(commands.Cog):
     async def cog_command_error(self, ctx: commands.Context, error: commands.CommandError):
         now = datetime.datetime.now(tz)
         now = now.replace(microsecond = 0)
-        print(f'{now.isoformat()} [{ctx.guild.id}] - Error in command {ctx.command.qualified_name} by {ctx.author.name} - {ctx.author.id}', flush=True)
+        guild_id = None
+        channel_name = None
+        if not ctx.guild:
+            guild_id = 'DM'
+            channel_name = 'DM'
+        else:
+            guild_id = ctx.guild.id
+            channel_name = ctx.channel.name
+        print(f'{now.isoformat()} [{guild_id}] - Error in command {ctx.command.qualified_name} by {ctx.author.name} - {ctx.author.id}', flush=True)
         _error = {
             'level': 'error', 
             'command_name': ctx.command.qualified_name, 
             'options': str(ctx.selected_options), 
             'author_id': ctx.author.id, 
             'author_name': ctx.author.name, 
-            'channel_name': ctx.channel.name, 
+            'channel_name': channel_name, 
             'error': str(type(error)),
         }
         
