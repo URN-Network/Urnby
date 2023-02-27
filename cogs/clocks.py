@@ -414,6 +414,11 @@ class Clocks(commands.Cog):
     @is_member_visible()
     @is_command_channel()
     async def _urn(self, ctx):
+        actives = await self.get_all_actives(ctx.guild.id)
+        for active in actives:
+            if active['user'] == ctx.author.id:
+                await ctx.send_response(content=f'Please clock out before attempting to claim your Urn')
+                return
         view = ClearOutView()
         await ctx.respond("Did you really get an URN!?! Are you ready to clear out your dkp/time to 0?", view=view)
         await view.wait()
