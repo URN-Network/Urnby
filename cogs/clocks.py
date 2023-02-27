@@ -786,6 +786,8 @@ class Clocks(commands.Cog):
         else:
             await ctx.send_response(content='Option not available yet')
             return
+        out_file = Path('/temp/data.json')
+        out_file.parent.mkdir(exist_ok=True, parents=True)
         json.dump(data, open('temp/data.json', 'w', encoding='utf-8'), indent=1)
         await ctx.send_response(content='Here\'s the data!', file=discord.File('temp/data.json', filename='data.json'))
         return
