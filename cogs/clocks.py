@@ -198,14 +198,15 @@ class Clocks(commands.Cog):
             }
         
         await self.store_active_record(ctx.guild.id, doc)
-        
         await ctx.send_response(content=f'{ctx.author.display_name} Successfuly clocked in at <t:{doc["in_timestamp"]}:f>')
-        config = self.get_config(ctx.guild.id)
-        if config.get('max_active') and config['max_active'] < len(actives):
-            content = f'Max number of active users is {config["max_active"]}, we are at {len(actives)} currently '
+        
+        if 'max_active' in config.keys() and config['max_active'] < len(actives)+1:
+            config = self.get_config(ctx.guild.id)
+            actives = await self.get_all_actives(ctx.guild.id)
+            content = f'Max number of active users is {config["max_active"]}, we are at {len(actives)} currently'
             for active in actives:
-                content += f'<@{active["user"]}>, '
-            content = content[:-2] + " please reduce active users"
+                content += f', <@{active["user"]}>'
+            content = content + " please reduce active users"
             await ctx.send_followup(content=content)
             return
         return
