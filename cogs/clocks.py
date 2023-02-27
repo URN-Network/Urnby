@@ -160,7 +160,7 @@ class Clocks(commands.Cog):
         for active in actives:
             user = await ctx.guild.fetch_member(active['user'])
             delta = get_hours_from_secs(now - active['in_timestamp'])
-            content += f"\n{user.display_name:20}{delta:.2f} hours active"
+            content += f"\n{user.display_name[:19]:20}{delta:.2f} hours active"
         content += "```"
         await ctx.send_response(content=content, ephemeral=not public)
     
@@ -177,6 +177,8 @@ class Clocks(commands.Cog):
             return
         # Already active check
         actives = await self.get_all_actives(ctx.guild.id)
+        
+        
         for active in actives:
             if active['user'] == ctx.author.id:
                 await ctx.send_response(content=f'You are already active, did you mean to clockout?')
@@ -197,8 +199,17 @@ class Clocks(commands.Cog):
             }
         
         await self.store_active_record(ctx.guild.id, doc)
-        
         await ctx.send_response(content=f'{ctx.author.display_name} Successfuly clocked in at <t:{doc["in_timestamp"]}:f>')
+        
+        config = self.get_config(ctx.guild.id)
+        if 'max_active' in config.keys() and config['max_active'] < len(actives)+1:
+            actives = await self.get_all_actives(ctx.guild.id)
+            content = f'Max number of active users is {config["max_active"]}, we are at {len(actives)} currently'
+            for active in actives:
+                content += f', <@{active["user"]}>'
+            content = content + " please reduce active users"
+            await ctx.send_followup(content=content)
+            return
         return
     
     @commands.slash_command(name='clockout', description='Clock out of the active session')
@@ -493,7 +504,11 @@ class Clocks(commands.Cog):
     
     @commands.slash_command(name="getusersessions", description='Ephemeral - Get list of user\'s historical sessions')
     @is_member()
-    async def _cmd_get_user_sessions(self, ctx, _id: discord.Option(name="user_id", input_type=int, required=True)):
+    async def _cmd_get_user_sessions(self, ctx, 
+                                    _id: discord.Option(name="user_id", input_type=int, required=True),
+                                    _timetype: discord.Option(name="timetype", choices=["Hours", "Seconds"], required=False, default='Hours'),
+                                    _public: discord.Option(name="public", choices=["True", "False"], required=False, default="False")):
+        _public = True if _public == "True" else False
         try:
             int(_id)
         except ValueError:
@@ -510,8 +525,21 @@ class Clocks(commands.Cog):
         for item in res:
             _in = datetime.datetime.fromtimestamp(item['in_timestamp'], tz)
             _out = datetime.datetime.fromtimestamp(item['out_timestamp'], tz)
-            ses_hours = get_hours_from_secs(item['out_timestamp'] - item['in_timestamp'])
-            content += f"\n{item['rowid']:5} {_in.date().isoformat()} - {item['session'][:55]:55} from {_in.time().isoformat('seconds')} {tz} to {_out.time().isoformat('seconds')} {tz} for {ses_hours} hours"
+            ses_hours = "Null"
+            if _timetype == 'Hours':
+                ses_hours = get_hours_from_secs(item['out_timestamp'] - item['in_timestamp'])
+            elif _timetype == 'Seconds':
+                ses_hours = item['out_timestamp'] - item['in_timestamp']
+            catagory = " "
+            if "_PCT_BONUS_" in item['character']:
+                catagory = "+"
+            elif item['character'].startswith("URN_ZERO_OUT_EVENT"):
+                catagory = "⚱️"
+            elif item['character'] == "SOLO_HOLD_BONUS":
+                catagory = "S"
+            elif item['character'] == "QUAKE_DS_BONUS":
+                catagory = "Q"
+            content += f"\n{item['rowid']:5} {_in.date().isoformat()} - {item['session'][:55]:55}{catagory} from {_in.time().isoformat('seconds')} {tz} to {_out.time().isoformat('seconds')} {tz} for {ses_hours} {_timetype.lower()}"
             # Max message length is 2000, give 100 leway for title/user hours ending
             if len(content) >= 1850:
                 clip_idx = content.rfind('\n', 0, 1850)
@@ -531,11 +559,11 @@ class Clocks(commands.Cog):
                 content = title+"```"+chunk+"```"
                 if len(chunks) == 1:
                     content += tail
-                await ctx.send_response(content=content, ephemeral=True)
+                await ctx.send_response(content=content, ephemeral=not _public, allowed_mentions=discord.AllowedMentions(users=False))
             elif len(chunks) == idx+1:
-                await ctx.send_followup(content="```"+chunk+"```"+tail, ephemeral=True)
+                await ctx.send_followup(content="```"+chunk+"```"+tail, ephemeral=not _public, allowed_mentions=discord.AllowedMentions(users=False))
             else:
-                await ctx.send_followup(content="```"+chunk+"```", ephemeral=True)
+                await ctx.send_followup(content="```"+chunk+"```", ephemeral=not _public, allowed_mentions=discord.AllowedMentions(users=False))
     
     @commands.slash_command(name="getuserseconds", description='Get total number of seconds that a user has accrued')
     @is_member()
