@@ -545,7 +545,7 @@ class Clocks(commands.Cog):
                 catagory = "S "
             elif item['character'] == "QUAKE_DS_BONUS":
                 catagory = "Q "
-            content += f"\n{item['rowid']:5} {_in.date().isoformat()} - {item['session'][:55]:55}{catagory} from {_in.time().isoformat('seconds')} {tz} to {_out.time().isoformat('seconds')} {tz} for {ses_hours} {_timetype.lower()}"
+            content += f"\n{item['rowid']:5} {_in.date().isoformat()} - {item['session'][:50]:50}  {catagory}from {_in.time().isoformat('seconds')} {tz} to {_out.time().isoformat('seconds')} {tz} for {ses_hours} {_timetype.lower()}"
             # Max message length is 2000, give 100 leway for title/user hours ending
             if len(content) >= 1850:
                 clip_idx = content.rfind('\n', 0, 1850)
