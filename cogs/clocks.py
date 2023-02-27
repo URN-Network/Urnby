@@ -176,6 +176,8 @@ class Clocks(commands.Cog):
             return
         # Already active check
         actives = await self.get_all_actives(ctx.guild.id)
+        
+        
         for active in actives:
             if active['user'] == ctx.author.id:
                 await ctx.send_response(content=f'You are already active, did you mean to clockout?')
@@ -198,6 +200,14 @@ class Clocks(commands.Cog):
         await self.store_active_record(ctx.guild.id, doc)
         
         await ctx.send_response(content=f'{ctx.author.display_name} Successfuly clocked in at <t:{doc["in_timestamp"]}:f>')
+        config = self.get_config(ctx.guild.id)
+        if config.get('max_active') and config['max_active'] < len(actives):
+            content = f'Max number of active users is {config["max_active"]}, we are at {len(actives)} currently '
+            for active in actives:
+                content += f'<@{active["user"]}>, '
+            content = content[:-2] + " please reduce active users"
+            await ctx.send_followup(content=content)
+            return
         return
     
     @commands.slash_command(name='clockout', description='Clock out of the active session')
