@@ -531,15 +531,15 @@ class Clocks(commands.Cog):
                 ses_hours = get_hours_from_secs(item['out_timestamp'] - item['in_timestamp'])
             elif _timetype == 'Seconds':
                 ses_hours = item['out_timestamp'] - item['in_timestamp']
-            catagory = " "
+            catagory = "  "
             if "_PCT_BONUS_" in item['character']:
-                catagory = "+"
+                catagory = "+ "
             elif item['character'].startswith("URN_ZERO_OUT_EVENT"):
                 catagory = "⚱️"
             elif item['character'] == "SOLO_HOLD_BONUS":
-                catagory = "S"
+                catagory = "S "
             elif item['character'] == "QUAKE_DS_BONUS":
-                catagory = "Q"
+                catagory = "Q "
             content += f"\n{item['rowid']:5} {_in.date().isoformat()} - {item['session'][:55]:55}{catagory} from {_in.time().isoformat('seconds')} {tz} to {_out.time().isoformat('seconds')} {tz} for {ses_hours} {_timetype.lower()}"
             # Max message length is 2000, give 100 leway for title/user hours ending
             if len(content) >= 1850:
