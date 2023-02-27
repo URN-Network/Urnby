@@ -4,6 +4,7 @@ import json
 import datetime
 import asyncio
 import aiosqlite
+import copy
 from pathlib import Path
 from pytz import timezone
 tz = timezone('EST')
@@ -207,7 +208,43 @@ class Clocks(commands.Cog):
     async def _clockout(self, ctx):
         res = await self._inner_clockout(ctx, ctx.author.id)
         await ctx.send_response(content=res['content'])
-    
+        bonus_sessions = await self.get_bonus_sessions(ctx.guild.id, res['record'], res['row'])
+        print(bonus_sessions)
+        for item in bonus_sessions:
+            row = await self.store_new_historical(ctx.guild.id, item)
+            tot = await self.get_user_hours(ctx.guild.id, ctx.author.id)
+            await ctx.send_followup(content=f'{ctx.author.display_name} Obtained bonus hours, stored record #{row} for {item["_DEBUG_delta"]} hours. Your total is at {round(tot, 2)}')
+            
+    async def get_bonus_sessions(self, guild_id, record, row):
+        config = self.get_config(guild_id)
+        if not config['bonus_hours']:
+            return None
+        bonuses = []
+        for bonus in config['bonus_hours']:
+            _in = datetime.datetime.fromtimestamp(record['in_timestamp'], tz)
+            _out = datetime.datetime.fromtimestamp(record['out_timestamp'], tz)
+            for day in range((_out.date() - _in.date()).days+1):
+                bonus_in = datetime.datetime.combine(_in.date()+datetime.timedelta(days=day), datetime.time.fromisoformat(bonus['start']), tz)
+                bonus_out = datetime.datetime.combine(_in.date()+datetime.timedelta(days=day), datetime.time.fromisoformat(bonus['end']), tz)
+                if _in <= bonus_out and _out >= bonus_in:
+                    #we have an intersection
+                    #duration calculation
+                    duration = int(min(_out.timestamp()-_in.timestamp(), 
+                                   _out.timestamp()-bonus_in.timestamp(), 
+                                   bonus_out.timestamp()-_in.timestamp(), 
+                                   bonus_out.timestamp()-bonus_in.timestamp()))
+                    duration = int(duration * (bonus['pct']/100))
+                    start = _in if _in > bonus_in else bonus_in
+                    rec = copy.deepcopy(record)
+                    rec['character'] = f'{bonus["pct"]}_PCT_BONUS_{bonus["start"]}_TO_{bonus["end"]} {row}'
+                    rec['in_timestamp'] = int(start.timestamp())
+                    rec['out_timestamp'] = int(start.timestamp()+duration)
+                    rec['_DEBUG_in'] = start.isoformat()
+                    rec['_DEBUG_out'] = (start + datetime.timedelta(seconds=duration)).isoformat()
+                    rec['_DEBUG_delta'] = get_hours_from_secs(duration)
+                    bonuses.append(rec)
+        return bonuses
+
     async def _inner_clockout(self, ctx, user_id):
         # Session Check
         session = await self.get_session(ctx.guild.id)
@@ -236,10 +273,10 @@ class Clocks(commands.Cog):
         res = await self.store_new_historical(ctx.guild.id, record)
         
         if not res:
-            return {'status': False, 'record': record, 'content': f'Failed to store record to historical, contact admin\n{found}'}
+            return {'status': False, 'record': record, 'row': None, 'content': f'Failed to store record to historical, contact admin\n{found}'}
         tot = await self.get_user_hours(ctx.guild.id, user_id)
         user = await ctx.guild.fetch_member(user_id)
-        return {'status': True,'record': record, 'content': f'{user.display_name} Successfuly clocked out at <t:{record["out_timestamp"]}>, stored record for {record["_DEBUG_delta"]} hours. Your total is at {round(tot, 2)}'}
+        return {'status': True,'record': record, 'row': res, 'content': f'{user.display_name} Successfuly clocked out at <t:{record["out_timestamp"]}>, stored record #{res} for {record["_DEBUG_delta"]} hours. Your total is at {round(tot, 2)}'}
     
 
     # ==============================================================================
@@ -319,7 +356,11 @@ class Clocks(commands.Cog):
                     close_outs.append((res['record']['_DEBUG_user_name'], res['record']['_DEBUG_delta']))
                     if not res['status']:
                         fails.append(active)
-                        
+                        continue
+                    bonus_sessions = await self.get_bonus_sessions(ctx.guild.id, res['record'], res['row'])
+                    for item in bonus_sessions:
+                        row = await self.store_new_historical(ctx.guild.id, item)
+                        close_outs.append((item['_DEBUG_user_name'], f'Bonus id#{row}', item['_DEBUG_delta']))
                 content = f'Session, {session["session"]} ended and lasted {session["_DEBUG_delta"]} hours'
                 if close_outs:       
                     content += f'\nAutomagically closed out {close_outs}'
