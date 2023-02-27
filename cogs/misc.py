@@ -17,6 +17,19 @@ class Misc(commands.Cog):
     async def on_connect(self):
         pass
     
+    async def cog_before_invoke(self, ctx):
+        now = datetime.datetime.now(tz)
+        now = now.replace(microsecond = 0)
+        guild_id = None
+        if not ctx.guild:
+            guild_id = 'DM'
+        else:
+            guild_id = ctx.guild.id
+        print(f'{now.isoformat()} [{guild_id}] - Command {ctx.command.qualified_name} by {ctx.author.name} - {ctx.author.id} - {ctx.message.jump_url}', flush=True)
+        #command = {'command_name': ctx.command.qualified_name, 'options': str(ctx.selected_options), 'datetime': now.isoformat(), 'user': ctx.author.id, 'user_name': ctx.author.name, 'channel_name': ctx.channel.name}
+        #await self.store_command(guild_id, command)
+        return
+    
     # ==============================================================================
     # Error Handlers
     # ==============================================================================
