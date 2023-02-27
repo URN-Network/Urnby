@@ -159,7 +159,7 @@ class Clocks(commands.Cog):
         for active in actives:
             user = await ctx.guild.fetch_member(active['user'])
             delta = get_hours_from_secs(now - active['in_timestamp'])
-            content += f"\n{user.display_name:20}{delta:.2f} hours active"
+            content += f"\n{user.display_name[:19]:20}{delta:.2f} hours active"
         content += "```"
         await ctx.send_response(content=content, ephemeral=not public)
     
