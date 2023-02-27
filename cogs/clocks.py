@@ -68,8 +68,7 @@ class Clocks(commands.Cog):
     # Error Handlers
     # ==============================================================================
     async def cog_command_error(self, ctx: commands.Context, error: commands.CommandError):
-        now = datetime.datetime.now(tz)
-        now = now.replace(microsecond = 0)
+        now = datetime.datetime.now(tz).replace(microsecond = 0)
         guild_id = None
         channel_name = None
         if not ctx.guild:
@@ -220,7 +219,6 @@ class Clocks(commands.Cog):
         res = await self._inner_clockout(ctx, ctx.author.id)
         await ctx.send_response(content=res['content'])
         bonus_sessions = await self.get_bonus_sessions(ctx.guild.id, res['record'], res['row'])
-        print(bonus_sessions)
         for item in bonus_sessions:
             row = await self.store_new_historical(ctx.guild.id, item)
             tot = await self.get_user_hours(ctx.guild.id, ctx.author.id)
@@ -231,6 +229,7 @@ class Clocks(commands.Cog):
         if not config.get('bonus_hours'):
             return None
         bonuses = []
+        
         for bonus in config['bonus_hours']:
             _in = datetime.datetime.fromtimestamp(record['in_timestamp'], tz)
             _out = datetime.datetime.fromtimestamp(record['out_timestamp'], tz)
@@ -238,6 +237,8 @@ class Clocks(commands.Cog):
                 bonus_in = datetime.datetime.combine(_in.date()+datetime.timedelta(days=day), datetime.time.fromisoformat(bonus['start']), tz)
                 bonus_out = datetime.datetime.combine(_in.date()+datetime.timedelta(days=day), datetime.time.fromisoformat(bonus['end']), tz)
                 if _in <= bonus_out and _out >= bonus_in:
+                    now = datetime.datetime.now(tz).replace(microsecond = 0)
+                    print(f'{now.isoformat()} [{guild_id}] - Bonus hours found for {record["_DEBUG_user_name"]}', flush=True)
                     #we have an intersection
                     #duration calculation
                     duration = int(min(_out.timestamp()-_in.timestamp(), 
