@@ -217,7 +217,7 @@ class Clocks(commands.Cog):
             
     async def get_bonus_sessions(self, guild_id, record, row):
         config = self.get_config(guild_id)
-        if not config['bonus_hours']:
+        if not config.get('bonus_hours'):
             return None
         bonuses = []
         for bonus in config['bonus_hours']:
