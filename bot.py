@@ -20,6 +20,7 @@ cogs_list = [
     'clocks',
     'peeper',
     'campqueue',
+    'misc',
 ]
 
 for cog in cogs_list:

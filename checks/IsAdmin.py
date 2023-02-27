@@ -5,6 +5,8 @@ class NotAdmin(commands.CheckFailure):
 
 def is_admin():
     async def predicate(ctx):
+        if not ctx.guild:
+            return True
         member = ctx.guild.get_member(ctx.author.id)
         roles = member.roles
         for role in roles:
