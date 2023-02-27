@@ -75,7 +75,7 @@ class Misc(commands.Cog):
         return
         
     @commands.slash_command(name='echo')
-    @is_member()
+    @is_admin()
     async def _echo(self, ctx, content: discord.Option(name='content', input_type=str, required=True)):
         await ctx.channel.send(content=content)
         await ctx.send_response(content="Your word is my command", ephemeral=True)
