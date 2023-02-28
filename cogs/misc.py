@@ -73,6 +73,49 @@ class Misc(commands.Cog):
             print(type(error), flush=True)
             raise error
         return
+    
+    @commands.slash_command(name='configadd')
+    @is_admin()
+    async def _add_config(self, ctx, 
+                          _key: discord.Option(name="key", choices=["member_roles", "admin_roles", "command_channels", "max_active"], required=True),
+                          _value: discord.Option(name="value", required=True))
+        guild_config = get_guild_config(str(ctx.guild.id))
+        if _key == "max_active":
+            guild_config[_key] = _value
+        else:
+            guild_config[_key].append(_value)
+        save_guild_config(str(ctx.guild.id), guild_config)
+        ctx.send_response(content=f"Config item set - {_key} = {guild_config[_key]}")
+            
+    @commands.slash_command(name='configaddbonushours')
+    @is_admin()
+    async def _add_config_bonus_hours(self, ctx, 
+                          _start: discord.Option(name="start", required=True),
+                          _end: discord.Option(name="end", required=True),
+                          _pct: discord.Option(name="pct", required=True))
+        guild_config = get_guild_config(str(ctx.guild.id))
+        if not guild_config.get('bonus_hours'):
+            guild_config['bonus_hours'] = []
+        try:
+            _start = '0'+_start if len(_start) == 4 else _start
+            _end = '0'+end if len(_end) == 4 else _end
+            datetime.time.fromisoformat(_start)
+            datetime.time.fromisoformat(_end)
+            int(_pct)
+        except ValueError as err:
+            ctx.send_response(content=f"Invalid input for value: {err}")
+            return
+        guild_config['bonus_hours'].append({"start":_start, "end":_end, "pct": _pct})
+        save_guild_config(str(ctx.guild.id), guild_config)
+        ctx.send_response(content=f"Config item set - bonus_hours = {guild_config['bonus_hours']}")
+    
+    @commands.slash_command(name='configclearitem')
+    @is_admin()
+    async def _config_clear_item(self, ctx, _key: discord.Option(name="key", choices=["member_roles", "admin_roles", "command_channels", "bonus_hours"], required=True)):
+        guild_config = get_guild_config(str(ctx.guild.id))
+        guild_config[_key] = []
+        save_guild_config(str(ctx.guild.id), guild_config)
+        ctx.send_response(content=f"Config item cleared - {_key} = {guild_config[_key]}")
         
     @commands.slash_command(name='echo')
     @is_admin()
@@ -80,7 +123,19 @@ class Misc(commands.Cog):
         await ctx.channel.send(content=content)
         await ctx.send_response(content="Your word is my command", ephemeral=True)
 
+def get_guild_config(guild_id):
+    config = json.load(open('data/config.json', 'r', encoding='utf-8'))
+    guild_config = config.get(str(ctx.guild.id))
+    if not guild_config:
+        guild_config = {}
+    return guild_config
 
+def save_guild_config(guild_id, config):
+    config = get_guild_config(guild_id)
+    config[guild_id] = config
+    json.dump(config, open('data/config.json', 'w', encoding='utf-8'), indent=1)
+    return True
+    
 def setup(bot):
     bot.add_cog(Misc(bot))
 
