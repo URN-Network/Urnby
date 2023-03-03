@@ -38,8 +38,7 @@ class Dashboard(commands.Cog):
             
             sorted_res = list(sorted(res, key= lambda user: user['total'], reverse=True))[:10]
             for item in sorted_res:
-                member = guild.get_member(int(item['user']))
-                print(f"{item['user']} on {type(item['user'])} got {member}")
+                member = await guild.get_member(int(item['user']))
                 if not member:
                     item['display_name'] = 'placeholder'
                     continue
@@ -51,7 +50,7 @@ class Dashboard(commands.Cog):
             actives = await db.get_all_actives(guild.id)
             now = datetime.datetime.now()
             for item in actives:
-                member = guild.get_member(int(item['user']))
+                member = await guild.get_member(int(item['user']))
                 if not member:
                     item['display_name'] = 'placeholder'
                     item['delta'] = get_hours_from_secs(now.timestamp() - item['in_timestamp'])
