@@ -27,7 +27,7 @@ async def on_ready():
 @is_owner()
 async def shutdown(ctx):
     for cog in cogs_list:
-        UrbyBot.remove_cog(cog)
+        UrbyBot.unload_extension(f'cogs.{cog}')
     print("Shut down all cogs")
     await sleep(1)
     exit()
@@ -35,14 +35,9 @@ async def shutdown(ctx):
 @UrnbyBot.command()
 @is_owner()
 async def restart(ctx):
-    cog_objs = []
     for cog in cogs_list:
-        cog_objs.append(UrnbyBot.get_cog(cog))
-        UrnbyBot.remove_cog(cog)
-    await sleep(1)
-    for cog in cog_objs:
-        if cog:
-            UrnbyBot.add_cog(cog)
+        UrnbyBot.reload_extension(f'cogs.{cog}')
+    print('Cogs restarted')
 
 cogs_list = [
     'clocks',

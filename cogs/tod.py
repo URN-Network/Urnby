@@ -50,8 +50,15 @@ class Tod(commands.Cog):
                "_DEBUG_tod_datetime": tod_datetime.isoformat(), 
                }
         row = db.store_tod(ctx.guild.id, rec)
+        await ctx.send_response(content=f"Set tod at {rec['_DEBUG_tod_datetime']}, spawn will happen at {(tod_datetime+datetime.timedelta(days=1)).isoformat()}")
         return
-   
+        
+    @commands.slash_command(name='gettod')
+    async def _get_tod(self, ctx):
+        rec = await db.get_tod(ctx.guild.id)
+        now = datetime.datetime.now(tz)
+        hours_till = get_hours_from_secs(now.timestamp() - (datetime.datetime.fromtimestamp(rec['tod_timestamp'], tz)+datetime.timedelta(days=1)).timestamp())
+        await ctx.send_response(content=f"ToD was {rec['_DEBUG_tod_datetime']} {rec['mob']} will spawn in {hours_till} hours", ephemeral=True)
 
 async def time_delta_to_minutes(delta:datetime.timedelta) -> float:
     secs = delta.total_seconds()
