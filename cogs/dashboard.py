@@ -95,7 +95,6 @@ class Dashboard(commands.Cog):
             contentlines[1] += f" Top {ex_lines+cont_lines} in Hours\n"
             contentlines[2] += f"{'-'*50}\n"
             for idx in range(ex_lines+cont_lines):
-                print(idx)
                 contentlines[idx+3] += f" {sorted_res[idx]['display_name'][:43]:43} {sorted_res[idx]['total']:.2f}\n"
             
             contentlines.append("```")

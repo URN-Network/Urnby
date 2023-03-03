@@ -110,7 +110,7 @@ async def get_all_actives(guild_id) -> list:
     res = []
     async with aiosqlite.connect('data/urnby.db') as db:
         db.row_factory = aiosqlite.Row
-        query = f"SELECT rowid, * FROM active WHERE server == {guild_id}"
+        query = f"SELECT rowid, * FROM active WHERE server = {guild_id}"
         async with db.execute(query) as cursor:
             rows = await cursor.fetchall()
             res = [dict(row) for row in rows]
@@ -152,7 +152,7 @@ async def get_historical(guild_id):
     res = []
     async with aiosqlite.connect('data/urnby.db') as db:
         db.row_factory = aiosqlite.Row
-        query = f"SELECT rowid, * FROM historical WHERE server == {guild_id}"
+        query = f"SELECT rowid, * FROM historical WHERE server = {guild_id}"
         async with db.execute(query) as cursor:
             rows = await cursor.fetchall()
             res = [dict(row) for row in rows]
@@ -172,7 +172,7 @@ async def get_historical_user(guild_id, user_id):
     res = []
     async with aiosqlite.connect('data/urnby.db') as db:
         db.row_factory = aiosqlite.Row
-        query = f"SELECT rowid, * FROM historical WHERE server == {guild_id} AND user == {user_id}"
+        query = f"SELECT rowid, * FROM historical WHERE server = {guild_id} AND user = {user_id}"
         async with db.execute(query) as cursor:
             rows = await cursor.fetchall()
             res = [dict(row) for row in rows]
@@ -182,7 +182,7 @@ async def get_historical_record(guild_id, rowid):
     res = []
     async with aiosqlite.connect('data/urnby.db') as db:
         db.row_factory = aiosqlite.Row
-        query = f"SELECT rowid, * FROM historical WHERE server == {guild_id} AND rowid == {rowid}"
+        query = f"SELECT rowid, * FROM historical WHERE server = {guild_id} AND rowid = {rowid}"
         async with db.execute(query) as cursor:
             rows = await cursor.fetchall()
             res = [dict(row) for row in rows]
@@ -202,7 +202,7 @@ async def store_new_historical(guild_id, record):
 async def delete_historical_record(guild_id, rowid):
     res = []
     async with aiosqlite.connect('data/urnby.db') as db:
-        query = f"DELETE FROM historical WHERE server == {guild_id} AND rowid == {rowid}"
+        query = f"DELETE FROM historical WHERE server = {guild_id} AND rowid = {rowid}"
         async with db.execute(query) as cursor:
             res = await cursor.fetchall()
         await db.commit()
@@ -265,7 +265,7 @@ async def get_unique_users(guild_id) -> list[int]:
     res = []
     async with aiosqlite.connect('data/urnby.db') as db:
         db.row_factory = aiosqlite.Row
-        query = f"SELECT DISTINCT user FROM historical WHERE server == {guild_id}"
+        query = f"SELECT DISTINCT user FROM historical WHERE server = {guild_id}"
         async with db.execute(query) as cursor:
             rows = await cursor.fetchall()
             res = [row['user'] for row in rows]
