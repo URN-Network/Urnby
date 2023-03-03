@@ -39,6 +39,7 @@ class Dashboard(commands.Cog):
             sorted_res = sorted(res, key= lambda user: user['total'], reverse=True)[:10]
             for item in sorted_res:
                 member = guild.get_member(int(item['user']))
+                print(f"{item['user']} on {type(item['user'])} got {member}")
                 if not member:
                     item['display_name'] = 'placeholder'
                     continue
