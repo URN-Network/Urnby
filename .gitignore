@@ -1,5 +1,6 @@
 .env
 data/*
+!data/databaseapi.py
 temp/*
 **__pycache__
 *.pyc
