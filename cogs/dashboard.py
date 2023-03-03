@@ -38,7 +38,7 @@ class Dashboard(commands.Cog):
             
             sorted_res = list(sorted(res, key= lambda user: user['total'], reverse=True))[:10]
             for item in sorted_res:
-                member = await guild.get_member(int(item['user']))
+                member = await guild.fetch_member(int(item['user']))
                 if not member:
                     item['display_name'] = 'placeholder'
                     continue
@@ -50,7 +50,7 @@ class Dashboard(commands.Cog):
             actives = await db.get_all_actives(guild.id)
             now = datetime.datetime.now()
             for item in actives:
-                member = await guild.get_member(int(item['user']))
+                member = await guild.fetch_member(int(item['user']))
                 if not member:
                     item['display_name'] = 'placeholder'
                     item['delta'] = get_hours_from_secs(now.timestamp() - item['in_timestamp'])
@@ -82,7 +82,7 @@ class Dashboard(commands.Cog):
                                                  | {sorted_res[9]['display_name'][:43]:43} {sorted_res[9]['total']:.2f}
 ```
 """
-            await guild.get_channel(config['dashboard_channel']).send(content=content)
+            await guild.get_channel(config['dashboard_channel']).send(content=content, delete_after=61.0)
     
             
     def get_config(self, guild_id):
