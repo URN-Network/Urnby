@@ -38,10 +38,11 @@ class Dashboard(commands.Cog):
             
             sorted_res = sorted(res, key= lambda user: user['total'], reverse=True)[:10]
             for item in sorted_res:
-                if not guild.get_member(item['user']):
+                member = guild.get_member(int(item['user']))
+                if not member:
                     item['display_name'] = 'placeholder'
                     continue
-                item['display_name'] = guild.get_member(item['user']).display_name
+                item['display_name'] = member.display_name
             
             for idx in range(len(sorted_res), 10):
                 sorted_res.append({'display_name': '', 'total': 0})
@@ -49,7 +50,8 @@ class Dashboard(commands.Cog):
             actives = await db.get_all_actives(guild.id)
             now = datetime.datetime.now()
             for item in actives:
-                if not guild.get_member(item['user']):
+                member = guild.get_member(int(item['user']))
+                if not member:
                     item['display_name'] = 'placeholder'
                     item['delta'] = get_hours_from_secs(now.timestamp() - item['in_timestamp'])
                     continue
