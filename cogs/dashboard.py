@@ -24,6 +24,13 @@ class Dashboard(commands.Cog):
         delta = self.printer.next_iteration - now
         await ctx.send_response(content=f'{delta}')
     
+    @commands.slash_command(name="dashboardhalt")
+    @commands.is_owner()
+    async def _halt(self, ctx):
+        print("Halting Dashboard cycle")
+        await ctx.send_response("Stopping Dashboard Cycle")
+        self.printer.stop()
+    
     @tasks.loop(minutes = 1)
     async def printer(self):
         for guild in self.bot.guilds:
@@ -37,8 +44,9 @@ class Dashboard(commands.Cog):
             
             sorted_res = list(sorted(res, key= lambda user: user['total'], reverse=True))[:10]
             for item in sorted_res:
-                member = await guild.fetch_member(int(item['user']))
-                if not member:
+                try:
+                    member = await guild.fetch_member(int(item['user']))
+                except discord.errors.NotFound:
                     item['display_name'] = 'placeholder'
                     continue
                 item['display_name'] = member.display_name
@@ -49,8 +57,9 @@ class Dashboard(commands.Cog):
             actives = await db.get_all_actives(guild.id)
             now = datetime.datetime.now()
             for item in actives:
-                member = await guild.fetch_member(int(item['user']))
-                if not member:
+                try:
+                    member = await guild.fetch_member(int(item['user']))
+                except discord.errors.NotFound:
                     item['display_name'] = 'placeholder'
                     item['delta'] = get_hours_from_secs(now.timestamp() - item['in_timestamp'])
                     continue
@@ -65,7 +74,7 @@ class Dashboard(commands.Cog):
                 timestr = ''
             else:
                 timestr = datetime.datetime.fromtimestamp(session['start_timestamp'], tz).strftime("%b%d %I:%M%p")
-            content= f"""@silent
+            content= f"""
 ```    
  Active Session                                  | Top 10 Hours
 ---------------------------------------------------------------------------------------------------
@@ -81,7 +90,7 @@ class Dashboard(commands.Cog):
                                                  | {sorted_res[9]['display_name'][:43]:43} {sorted_res[9]['total']:.2f}
 ```
 """
-            await guild.get_channel(config['dashboard_channel']).send(content=content, delete_after=61.0)
+            await guild.get_channel(config['dashboard_channel']).send(content=content, delete_after=61.0, silent=True)
     
             
     def get_config(self, guild_id):
