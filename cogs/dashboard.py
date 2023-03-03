@@ -42,7 +42,7 @@ class Dashboard(commands.Cog):
             
             res = await db.get_users_hours(guild.id, users)
             
-            sorted_res = list(sorted(res, key= lambda user: user['total'], reverse=True))[:10]
+            sorted_res = list(sorted(res, key= lambda user: user['total'], reverse=True))
             for item in sorted_res:
                 try:
                     member = await guild.fetch_member(int(item['user']))
@@ -65,8 +65,7 @@ class Dashboard(commands.Cog):
                     continue
                 item['display_name'] = guild.get_member(item['user']).display_name
                 item['delta'] = get_hours_from_secs(now.timestamp() - item['in_timestamp'])
-            for idx in range(len(actives), 5):
-                actives.append({'display_name': '', 'delta': 0})
+            
                 
             session = await db.get_session(guild.id)
             if not session:
@@ -74,29 +73,35 @@ class Dashboard(commands.Cog):
                 timestr = ''
             else:
                 timestr = datetime.datetime.fromtimestamp(session['start_timestamp'], tz).strftime("%b%d %I:%M%p")
-            mins_till_ds = 0
+            mins_till_ds = "####"
             camp_queue = []
             contentlines = ["```\n"]
             contentlines.append(f" {'Active Session':33}DS in: {mins_till_ds:4}mins|")
-            contentlines.append(f"{'-'*50}")
+            contentlines.append(f"{'-'*49}-")
             contentlines.append(f" {session['session'][:27]:27} @ {timestr:13} EST |")
-            contentlines.append(f"{'-'*50}")
+            contentlines.append(f"{'-'*49}|")
             contentlines.append(f" {'Active Users':48}|")
-            contentlines.append(f"{'-'*50}")
+            contentlines.append(f"{'-'*49}|")
             for item in actives:
                 contentlines.append(f" {item['display_name'][:29]:30} {item['delta']:17.2f}|")
-            contentlines.append(f"{'-'*50}")
+            contentlines.append(f"{'-'*49}|")
             contentlines.append(f" {'Camp Queue':48}|")
-            contentlines.append(f"{'-'*50}")
+            contentlines.append(f"{'-'*49}|")
             for item in camp_queue:
                 contentlines.append(f" {item['display_name'][:29]:30} {item['delta']:17.2f}|")
-            lines = 7
-            ex_lines = len(actives) + len(campqueue)
-            contentlines[0] += f" Top {ex_lines} in Hours\n"
-            contentlines[1] += f"{'-'*50}\n"
-            for idx in range(3, lines+ex_lines):
-                contentlines[idx] += f" {sorted_res[idx]['display_name'][:43]:43} {sorted_res[idx]['total']:.2f}\n"
+            lines = 2
+            ex_lines = 7
+            cont_lines = len(actives) + len(camp_queue)
+            contentlines[1] += f" Top {ex_lines+cont_lines} in Hours\n"
+            contentlines[2] += f"{'-'*50}\n"
+            print(lines)
+            print(ex_lines)
+            for idx in range(ex_lines+cont_lines):
+                print(idx)
+                contentlines[idx+3] += f" {sorted_res[idx]['display_name'][:43]:43} {sorted_res[idx]['total']:.2f}\n"
+            
             contentlines.append("```")
+            content = ""
             for item in contentlines:
                 content += item
                 '''
