@@ -1,7 +1,7 @@
 import aiosqlite
 from static.common import get_hours_from_secs
 
-async def flush_wal(self):
+async def flush_wal():
     async with aiosqlite.connect('data/urnby.db') as db:
         try:
             query = f"""PRAGMA journal_mode = DELETE"""

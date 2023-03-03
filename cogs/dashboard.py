@@ -74,6 +74,32 @@ class Dashboard(commands.Cog):
                 timestr = ''
             else:
                 timestr = datetime.datetime.fromtimestamp(session['start_timestamp'], tz).strftime("%b%d %I:%M%p")
+            mins_till_ds = 0
+            camp_queue = []
+            contentlines = ["```\n"]
+            contentlines.append(f" {'Active Session':33}DS in: {mins_till_ds:4}mins|")
+            contentlines.append(f"{'-'*50}")
+            contentlines.append(f" {session['session'][:27]:27} @ {timestr:13} EST |")
+            contentlines.append(f"{'-'*50}")
+            contentlines.append(f" {'Active Users':48}|")
+            contentlines.append(f"{'-'*50}")
+            for item in actives:
+                contentlines.append(f" {item['display_name'][:29]:30} {item['delta']:17.2f}|")
+            contentlines.append(f"{'-'*50}")
+            contentlines.append(f" {'Camp Queue':48}|")
+            contentlines.append(f"{'-'*50}")
+            for item in camp_queue:
+                contentlines.append(f" {item['display_name'][:29]:30} {item['delta']:17.2f}|")
+            lines = 7
+            ex_lines = len(actives) + len(campqueue)
+            contentlines[0] += f" Top {ex_lines} in Hours\n"
+            contentlines[1] += f"{'-'*50}\n"
+            for idx in range(3, lines+ex_lines):
+                contentlines[idx] += f" {sorted_res[idx]['display_name'][:43]:43} {sorted_res[idx]['total']:.2f}\n"
+            contentlines.append("```")
+            for item in contentlines:
+                content += item
+                '''
             content= f"""
 ```    
  Active Session                                  | Top 10 Hours
@@ -89,7 +115,7 @@ class Dashboard(commands.Cog):
  {actives[4]['display_name'][:29]:30} {actives[4]['delta']:16.2f} | {sorted_res[8]['display_name'][:43]:43} {sorted_res[8]['total']:.2f}
                                                  | {sorted_res[9]['display_name'][:43]:43} {sorted_res[9]['total']:.2f}
 ```
-"""
+"""'''
             await guild.get_channel(config['dashboard_channel']).send(content=content, delete_after=61.0, silent=True)
     
             
