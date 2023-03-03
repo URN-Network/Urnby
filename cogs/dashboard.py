@@ -15,9 +15,17 @@ class Dashboard(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.printer.start()
-        
+        self.lastmsg = {}
         print('Initilization on dashboard complete')
-    
+        
+    @commands.Cog.listener()
+    async def cog_unload(ctx):
+        for key, value in self.lastmsg:
+            msg = await self.bot.fetch_guild(key).fetch_channel(value['channel']).fetch_message(value['msgid'])
+            jump = msg.juml_url
+            await msg.delete()
+            print(f"Deleted dashboard message {jump}")
+        
     @commands.slash_command(name="timeleft")
     async def _timeleft(self, ctx):
         now = datetime.datetime.now(utc_tz)
@@ -113,7 +121,8 @@ class Dashboard(commands.Cog):
             for item in contentlines:
                 content += item
                 
-            await guild.get_channel(config['dashboard_channel']).send(content=content, delete_after=61.0, silent=True)
+            lastmsg = await guild.get_channel(config['dashboard_channel']).send(content=content, delete_after=59.5, silent=True)
+            self.lastmsg[str(ctx.guild.id)] = {'channel': ctx.channel_id, 'msgid':lastmsg.id}
     
             
     def get_config(self, guild_id):

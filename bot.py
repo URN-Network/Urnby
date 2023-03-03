@@ -1,8 +1,8 @@
 import os
 import discord 
 import json
+from asyncio import sleep
 from dotenv import load_dotenv
-
 
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
@@ -22,6 +22,27 @@ async def on_ready():
     else:
         for guild in UrnbyBot.guilds:
             await guild.get_member(UrnbyBot.user.id).edit(nick='Paul Bearer')
+
+@UrnbyBot.command()
+@is_owner()
+async def shutdown(ctx):
+    for cog in cogs_list:
+        UrbyBot.remove_cog(cog)
+    print("Shut down all cogs")
+    await sleep(1)
+    exit()
+    
+@UrnbyBot.command()
+@is_owner()
+async def restart(ctx):
+    cog_objs = []
+    for cog in cogs_list:
+        cog_objs.append(UrnbyBot.get_cog(cog))
+        UrnbyBot.remove_cog(cog)
+    await sleep(1)
+    for cog in cog_objs:
+        if cog:
+            UrnbyBot.add_cog(cog)
 
 cogs_list = [
     'clocks',
