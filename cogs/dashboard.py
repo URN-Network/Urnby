@@ -31,7 +31,6 @@ class Dashboard(commands.Cog):
             config = self.get_config(guild.id)
             if not config or not config.get('dashboard_channel'):
                 continue
-            print(f'config get on {guild}')
             users = await db.get_unique_users(guild.id)
             
             res = await db.get_users_hours(guild.id, users)
@@ -66,7 +65,7 @@ class Dashboard(commands.Cog):
                 timestr = ''
             else:
                 timestr = datetime.datetime.fromtimestamp(session['start_timestamp'], tz).strftime("%b%d %I:%M%p")
-            content= f"""
+            content= f"""@silent
 ```    
  Active Session                                  | Top 10 Hours
 ---------------------------------------------------------------------------------------------------
@@ -86,7 +85,6 @@ class Dashboard(commands.Cog):
     
             
     def get_config(self, guild_id):
-        print(guild_id)
         return json.load(open('data/config.json', 'r', encoding='utf-8')).get(str(guild_id))
         
         
