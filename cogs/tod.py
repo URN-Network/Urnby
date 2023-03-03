@@ -1,11 +1,14 @@
-import json
+# Builtin
 import datetime
+import json
 
+# External
 import discord
 from discord.ext import commands
 from pytz import timezone
 tz = timezone('EST')
 
+# Internal
 import data.databaseapi as db
 from static.common import get_hours_from_secs
 from views.ClearOutView import ClearOutView

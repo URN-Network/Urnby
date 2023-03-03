@@ -1,11 +1,14 @@
+# Builtin
 import datetime
 import json
+
+# External
 import discord
 from discord.ext import commands
 from pytz import timezone
 tz = timezone('EST')
 
-
+# Internal
 from checks.IsAdmin import is_admin, NotAdmin
 from checks.IsCommandChannel import is_command_channel, NotCommandChannel
 from checks.IsMemberVisible import is_member_visible, NotMemberVisible

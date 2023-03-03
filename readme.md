@@ -1,3 +1,16 @@
+Patching usage:
+	If updates are needed to the database (such as table creation) or application needs to be shutdown:
+		1) use /shutdown command (requires ownership)
+		2) run database change commands
+		3) git pull (if needed)
+		4) run unix command "nohup python3 bot.py &"
+		5) monitor output via "less nohup.out"
+		
+	If no updates are needed to the database and all changes are contained to cogs/ folder:
+		1) git pull
+		2) monitor changes using "less nohup.out"
+		3) use /restart command
+
 Transparency
 	Due to the nature of this group, newly formed with limited to no affiliation to other members, my aim is to be fully transparent on records and data to empower users to be able to question this system to form a bond of trust.
 	
@@ -9,9 +22,10 @@ Technical Info
 	This bot application was made in python3 using the pycord library and (currently) json files (transitioning to sqlite3) as the database system.
 	Builtin python libraries used:
 	os - getting environment variables
+	copy - for deepcopies
 	datetime - common datetime functionality
-	pathlib - Transitioning out after data switch to sqlite
-	json - Transitioning out after data switch to sqlite
+	pathlib - use for config and getdata commands
+	json - use for config and getdata commands
 	
 	Python dependancies are:
 	pycord - Python Discord API wrapper

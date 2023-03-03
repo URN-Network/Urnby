@@ -1,11 +1,15 @@
+# Builtin
+import datetime
+import json
+
+# External
 import discord
 from discord.ext import commands, tasks
-import datetime
 from pytz import timezone
 tz = timezone('EST')
 utc_tz = timezone('UTC')
-import json
 
+# Internal
 import data.databaseapi as db
 from static.common import get_hours_from_secs, SECS_IN_MINUTE
 from checks.IsCommandChannel import is_command_channel, NotCommandChannel

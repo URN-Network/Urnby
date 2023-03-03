@@ -1,8 +1,13 @@
+# Builtin
+import datetime
+
+# External
 import discord
 from discord.ext import commands
-import datetime
 from pytz import timezone
 tz = timezone('EST')
+
+# Internal
 
 
 class Peeper(commands.Cog):

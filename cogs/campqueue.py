@@ -1,10 +1,15 @@
-import discord
-from discord.ext import commands
+# Builtin
 import datetime
 import json
-from pathlib import Path
+
+# External
+import discord
+from discord.ext import commands
 from pytz import timezone
 tz = timezone('EST')
+from pathlib import Path
+
+# Internal
 
 CLASSES = json.load(open('static/classes.json', 'r', encoding='utf-8'))
 

@@ -1,14 +1,18 @@
-import discord
-from discord.ext import commands
-import json
+# Builtin
 import datetime
+import json
 import asyncio
-from aiosqlite import OperationalError
 import copy
 from pathlib import Path
+
+# External
+import discord
+from discord.ext import commands
 from pytz import timezone
 tz = timezone('EST')
+from aiosqlite import OperationalError
 
+# Internal
 import data.databaseapi as db
 from static.common import get_hours_from_secs
 from views.ClearOutView import ClearOutView
