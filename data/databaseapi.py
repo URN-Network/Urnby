@@ -255,6 +255,29 @@ async def get_user_commands_history(guild_id, user_id, start_at=None, count=10) 
         if start_at:
             res = res[start_at:]
     return res
+    # ==============================================================================
+    # Tod
+    # ============================================================================== 
+
+async def get_tod(guild_id, mob_name="Drusella Sathir") -> dict:
+    res = []
+    async with aiosqlite.connect('data/urnby.db') as db:
+        db.row_factory = aiosqlite.Row
+        query = f"SELECT rowid, * FROM tod WHERE guild = {guild_id} ORDER BY submitted_timestamp DESC LIMIT 1"
+        async with db.execute(query) as cursor:
+            row = await cursor.fetchone()
+            res = dict(row)
+    return res
+    
+async def store_tod(guild_id, info):
+    lastrow = 0
+    async with aiosqlite.connect('data/urnby.db') as db:
+        query = f"""INSERT INTO tod(guild,       mob,  tod_timestamp,  submitted_timestamp,  submitted_by_id,  _DEBUG_submitted_datetime,  _DEBUG_submitted_by,  _DEBUG_tod_datetime)
+                             VALUES({guild_id}, :mob, :tod_timestamp, :submitted_timestamp, :submitted_by_id, :_DEBUG_submitted_datetime, :_DEBUG_submitted_by, :_DEBUG_tod_datetime))"""
+        async with db.execute(query, info) as cursor:
+            lastrow = cursor.lastrowid
+        await db.commit()
+    return lastrow
     
     # ==============================================================================
     # Misc

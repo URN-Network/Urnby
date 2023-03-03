@@ -4,3 +4,4 @@ data/*
 temp/*
 **__pycache__
 *.pyc
+cogs/blank_cog.py

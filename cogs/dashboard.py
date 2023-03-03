@@ -7,7 +7,7 @@ utc_tz = timezone('UTC')
 import json
 
 import data.databaseapi as db
-from static.common import get_hours_from_secs
+from static.common import get_hours_from_secs, SECS_IN_MINUTE
 
 
 class Dashboard(commands.Cog):
@@ -38,6 +38,7 @@ class Dashboard(commands.Cog):
             config = self.get_config(guild.id)
             if not config or not config.get('dashboard_channel'):
                 continue
+            now = datetime.datetime.now(tz)
             users = await db.get_unique_users(guild.id)
             
             res = await db.get_users_hours(guild.id, users)
@@ -51,11 +52,8 @@ class Dashboard(commands.Cog):
                     continue
                 item['display_name'] = member.display_name
             
-            for idx in range(len(sorted_res), 10):
-                sorted_res.append({'display_name': '', 'total': 0})
-            
             actives = await db.get_all_actives(guild.id)
-            now = datetime.datetime.now()
+            
             for item in actives:
                 try:
                     member = await guild.fetch_member(int(item['user']))
@@ -73,51 +71,48 @@ class Dashboard(commands.Cog):
                 timestr = ''
             else:
                 timestr = datetime.datetime.fromtimestamp(session['start_timestamp'], tz).strftime("%b%d %I:%M%p")
-            mins_till_ds = "####"
+            
+            tod_dict = db.get_tod(guild.id, mob_name="Drusella Sathir")
+            tod_datetime = datetime.datetime.fromtimestamp(tod_dict['tod_timestamp'], tz) + datetime.timedelta(days=1)
+            mins_till_ds = int((tod_datetime - now).total_seconds()/SECS_IN_MINUTE)}
+            if mins_till_ds < 0:
+                mins_till_ds_str = "Unknown"
+            else:
+                mins_till_ds_str = f'{mins_till_ds:4}mins'
+            #TODO get camp queue
             camp_queue = []
             contentlines = ["```\n"]
-            contentlines.append(f" {'Active Session':33}DS in: {mins_till_ds:4}mins|")
+            contentlines.append(f" {'Active Session':33}DS in: {mins_till_ds_str:8}|")
             contentlines.append(f"{'-'*49}-")
             contentlines.append(f" {session['session'][:27]:27} @ {timestr:13} EST |")
             contentlines.append(f"{'-'*49}|")
-            contentlines.append(f" {'Active Users':48}|")
+            contentlines.append(f" {'Active Users':35}Hours at camp|") 
             contentlines.append(f"{'-'*49}|")
             for item in actives:
                 contentlines.append(f" {item['display_name'][:29]:30} {item['delta']:17.2f}|")
             contentlines.append(f"{'-'*49}|")
-            contentlines.append(f" {'Camp Queue':48}|")
+            contentlines.append(f" {'Camp Queue':33}Hours available|")
             contentlines.append(f"{'-'*49}|")
             for item in camp_queue:
                 contentlines.append(f" {item['display_name'][:29]:30} {item['delta']:17.2f}|")
             lines = 2
             ex_lines = 7
             cont_lines = len(actives) + len(camp_queue)
+            
+            #Appending 2nd column
             contentlines[1] += f" Top {ex_lines+cont_lines} in Hours\n"
             contentlines[2] += f"{'-'*50}\n"
             for idx in range(ex_lines+cont_lines):
+                if idx >= len(sorted_res):
+                    contentlines[idx+3] += f"\n"
+                    continue
                 contentlines[idx+3] += f" {sorted_res[idx]['display_name'][:43]:43} {sorted_res[idx]['total']:.2f}\n"
             
             contentlines.append("```")
             content = ""
             for item in contentlines:
                 content += item
-                '''
-            content= f"""
-```    
- Active Session                                  | Top 10 Hours
----------------------------------------------------------------------------------------------------
- {session['session'][:27]:27} @ {timestr:13} EST | {sorted_res[0]['display_name'][:43]:43} {sorted_res[0]['total']:.2f}
--------------------------------------------------| {sorted_res[1]['display_name'][:43]:43} {sorted_res[1]['total']:.2f}
- Active Users                                    | {sorted_res[2]['display_name'][:43]:43} {sorted_res[2]['total']:.2f}
--------------------------------------------------| {sorted_res[3]['display_name'][:43]:43} {sorted_res[3]['total']:.2f}
- {actives[0]['display_name'][:29]:30} {actives[0]['delta']:16.2f} | {sorted_res[4]['display_name'][:43]:43} {sorted_res[4]['total']:.2f}
- {actives[1]['display_name'][:29]:30} {actives[1]['delta']:16.2f} | {sorted_res[5]['display_name'][:43]:43} {sorted_res[5]['total']:.2f}
- {actives[2]['display_name'][:29]:30} {actives[2]['delta']:16.2f} | {sorted_res[6]['display_name'][:43]:43} {sorted_res[6]['total']:.2f}
- {actives[3]['display_name'][:29]:30} {actives[3]['delta']:16.2f} | {sorted_res[7]['display_name'][:43]:43} {sorted_res[7]['total']:.2f}
- {actives[4]['display_name'][:29]:30} {actives[4]['delta']:16.2f} | {sorted_res[8]['display_name'][:43]:43} {sorted_res[8]['total']:.2f}
-                                                 | {sorted_res[9]['display_name'][:43]:43} {sorted_res[9]['total']:.2f}
-```
-"""'''
+                
             await guild.get_channel(config['dashboard_channel']).send(content=content, delete_after=61.0, silent=True)
     
             
