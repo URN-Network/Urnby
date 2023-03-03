@@ -36,7 +36,7 @@ class Dashboard(commands.Cog):
             
             res = await db.get_users_hours(guild.id, users)
             
-            sorted_res = sorted(res, key= lambda user: user['total'], reverse=True)[:10]
+            sorted_res = list(sorted(res, key= lambda user: user['total'], reverse=True))[:10]
             for item in sorted_res:
                 member = guild.get_member(int(item['user']))
                 print(f"{item['user']} on {type(item['user'])} got {member}")
