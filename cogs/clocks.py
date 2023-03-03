@@ -106,14 +106,6 @@ class Clocks(commands.Cog):
         return
     
     # ==============================================================================
-    # DEBUG FUNCTIONS NEEDS TO BE DELETED
-    # ==============================================================================
-    @commands.slash_command(name="admincommand", description='Command to confirm the user is an admin')
-    @is_admin()
-    async def _admincommand(self, ctx):
-        await ctx.send_response(content=f'You\'re an admin!')
-    
-    # ==============================================================================
     # Init/Reconnection events
     # ==============================================================================
     @commands.Cog.listener()
@@ -580,7 +572,12 @@ class Clocks(commands.Cog):
     
     # ==============================================================================
     # Admin functions
-    # ==============================================================================    
+    # ==============================================================================   
+    @commands.slash_command(name="admincommand", description='Command to confirm the user is an admin')
+    @is_admin()
+    async def _admincommand(self, ctx):
+        await ctx.send_response(content=f'You\'re an admin!')
+        
     @commands.slash_command(name='admindirecturn', description='Admin command to directly urn a user')
     @is_admin()
     @is_member()

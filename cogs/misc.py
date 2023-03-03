@@ -78,7 +78,17 @@ class Misc(commands.Cog):
             print(type(error), flush=True)
             raise error
         return
-    
+        
+    @commands.slash_command(name="ownerdelmsg", description="Owner command, must be ran in channel where message is to be deleted")
+    @commands.is_owner()
+    async def _del(self, ctx, messageid: discord.Option(int, name='messageid', required=True)):
+        msg = await ctx.channel.fetch_message(messageid)
+        res = "Failed"
+        if msg and msg.author.id == ctx.author.id:
+            msg.delete()
+            res = "Succeeded"
+        await ctx.send_response(f"Deletion of msgid {messageid} was {res}", ephemeral=True)
+        
     @commands.slash_command(name='configadd')
     @is_admin()
     async def _add_config(self, ctx, 
@@ -118,7 +128,7 @@ class Misc(commands.Cog):
     @is_admin()
     async def _config_clear_item(self, ctx, _key: discord.Option(name="key", choices=["member_roles", "admin_roles", "command_channels", "bonus_hours"], required=True)):
         guild_config = get_guild_config(str(ctx.guild.id))
-        guild_config[_key] = []
+        guild_config[_key] = ""
         save_guild_config(str(ctx.guild.id), guild_config)
         await ctx.send_response(content=f"Config item cleared - {_key} = {guild_config[_key]}")
         

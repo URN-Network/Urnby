@@ -8,6 +8,9 @@ import json
 
 import data.databaseapi as db
 from static.common import get_hours_from_secs, SECS_IN_MINUTE
+from checks.IsCommandChannel import is_command_channel, NotCommandChannel
+from checks.IsMemberVisible import is_member_visible, NotMemberVisible
+from checks.IsMember import is_member, NotMember
 
 
 class Dashboard(commands.Cog):
@@ -27,6 +30,9 @@ class Dashboard(commands.Cog):
             print(f"Deleted dashboard message {jump}")
         
     @commands.slash_command(name="timeleft")
+    @is_member()
+    @is_command_channel()
+    @is_member_visible()
     async def _timeleft(self, ctx):
         now = datetime.datetime.now(utc_tz)
         delta = self.printer.next_iteration - now
@@ -34,11 +40,13 @@ class Dashboard(commands.Cog):
     
     @commands.slash_command(name="dashboardhalt")
     @commands.is_owner()
+    @is_command_channel()
+    @is_member_visible()
     async def _halt(self, ctx):
         print("Halting Dashboard cycle")
         await ctx.send_response("Stopping Dashboard Cycle")
         self.printer.stop()
-    
+        
     @tasks.loop(minutes = 1)
     async def printer(self):
         for guild in self.bot.guilds:
