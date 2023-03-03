@@ -571,44 +571,6 @@ class Clocks(commands.Cog):
     async def _get_user_sessions(self, ctx, member: discord.Member):
         await self._cmd_get_user_sessions(ctx, member.id, "Hours", False)
         return
-        '''
-        res = await db.get_historical_user(ctx.guild.id, member.id)
-        if len(res) == 0:
-            await ctx.send_response(content=f"{member.display_name} has no recorded sessions", ephemeral=True)
-            return
-        chunks = []
-        title = f"_ _\n<@{member.id}> Sessions:\n"
-        content = ""
-        for item in res:
-            _in_date = datetime.datetime.fromtimestamp(item['in_timestamp'], tz).date().isoformat()
-            _in = datetime.datetime.fromtimestamp(item['in_timestamp'], tz)
-            _out = datetime.datetime.fromtimestamp(item['out_timestamp'], tz)
-            ses_hours = get_hours_from_secs(item['out_timestamp']-item['in_timestamp'])
-            content += f"\n{item['rowid']:5} {_in_date} - {item['session'][:55]:55} from {_in.time().isoformat('seconds')} {tz} to {_out.time().isoformat('seconds')} {tz} for {ses_hours:.2f} hours"
-            # Max message length is 2000, give 100 leway for title/user hours ending
-            if len(content) >= 1850:
-                clip_idx = content.rfind('\n', 0, 1850)
-                if len(chunks) == 0:
-                    chunks.append(content[:clip_idx])
-                else:
-                    chunks.append(content[:clip_idx])
-                content = content[clip_idx:]
-        tot = await db.get_user_hours(ctx.guild.id, member.id)
-        tail = f"\n<@{member.id}> has accrued {tot} hours"      
-        if res:
-            chunks.append(content)
-        
-        for idx, chunk in enumerate(chunks):
-            if idx == 0:
-                content = title+"```"+chunk+"```"
-                if len(chunks) == 1:
-                    content += tail
-                await ctx.send_response(content=content, ephemeral=True)
-            elif len(chunks) == idx+1:
-                await ctx.send_followup(content="```"+chunk+"```"+tail, ephemeral=True)
-            else:
-                await ctx.send_followup(content="```"+chunk+"```", ephemeral=True)
-        '''
                 
     @commands.slash_command(name="getuserseconds", description='Get total number of seconds that a user has accrued')
     @is_member()
