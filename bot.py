@@ -1,5 +1,6 @@
 import os
 import discord 
+from discord.ext import commands
 import json
 from asyncio import sleep
 from dotenv import load_dotenv
@@ -24,7 +25,7 @@ async def on_ready():
             await guild.get_member(UrnbyBot.user.id).edit(nick='Paul Bearer')
 
 @UrnbyBot.command()
-@is_owner()
+@commands.is_owner()
 async def shutdown(ctx):
     for cog in cogs_list:
         UrbyBot.unload_extension(f'cogs.{cog}')
@@ -33,7 +34,7 @@ async def shutdown(ctx):
     exit()
     
 @UrnbyBot.command()
-@is_owner()
+@commands.is_owner()
 async def restart(ctx):
     for cog in cogs_list:
         UrnbyBot.reload_extension(f'cogs.{cog}')
