@@ -26,7 +26,7 @@ class Tod(commands.Cog):
         
     @commands.slash_command(name='tod', description='Entered tod must be todays date, or using the optional daybefore parameter, yesterday')
     async def _tod(self, ctx, 
-                       tod: discord.Option(str, name='tod', description='Required format: 24hour clock time EST, or \'now\'', required=True),
+                       tod: discord.Option(str, name='tod', description="Use when time is not 'now' - 24hour clock time EST (ex 14:49)" , default='now'),
                        mobname: discord.Option(str, name='mobname', default='Drusella Sathir'),
                        daybefore: discord.Option(bool, name='daybefore', description='Use if the tod was actually yesterday',  default=False)):
         now = datetime.datetime.now(tz)
