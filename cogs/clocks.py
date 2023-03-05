@@ -592,7 +592,7 @@ class Clocks(commands.Cog):
             ctx.send_response(content=f'id must be a valid integer {err}', ephemeral=True)
             return
         
-        secs = await db.get_user_seconds(ctx.guild.id, id)
+        secs = await db.get_user_seconds(ctx.guild.id, _id)
         await ctx.send_response(content=f'{id} has {secs}')
     
     # ==============================================================================
