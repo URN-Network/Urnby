@@ -450,13 +450,13 @@ class Clocks(commands.Cog):
     @commands.slash_command(name='getcommands', description='Ephemeral - Get a list of historical commands submitted to the bot by a user')
     @is_member()
     async def _get_commands(self, ctx, 
-                            _id: discord.Option(str, name="user_id", required=False, default=0),
-                            startat: discord.Option(int, name="start_at", required=False, default=0), 
-                            count: discord.Option(int, name="count", required=False, default=10)):
-        if _id == 0:
+                            _id: discord.Option(str, name="user_id", default=''),
+                            startat: discord.Option(int, name="start_at", default=0), 
+                            count: discord.Option(int, name="count", default=10)):
+        if _id == '':
             _id = ctx.author.id
         try:
-            _id = int(id)
+            _id = int(_id)
         except ValueError as err:
             ctx.send_response(content=f'id must be a valid integer {err}', ephemeral=True)
             return
@@ -511,10 +511,10 @@ class Clocks(commands.Cog):
     @commands.slash_command(name="getusersessions", description='Ephemeral - Get list of user\'s historical sessions')
     @is_member()
     async def _cmd_get_user_sessions(self, ctx, 
-                                    _id: discord.Option(str, name="user_id", required=False),
-                                    _timetype: discord.Option(str, name="timetype", choices=["Hours", "Seconds"], required=False, default='Hours'),
-                                    _public: discord.Option(bool, name="public", required=False, default=False)):
-        if _id == 0:
+                                    _id: discord.Option(str, name="user_id", default=''),
+                                    _timetype: discord.Option(str, name="timetype", choices=["Hours", "Seconds"], default='Hours'),
+                                    _public: discord.Option(bool, name="public", default=False)):
+        if _id == '':
             _id = ctx.author.id
         else:
             try:
@@ -583,8 +583,8 @@ class Clocks(commands.Cog):
                 
     @commands.slash_command(name="getuserseconds", description='Get total number of seconds that a user has accrued')
     @is_member()
-    async def _get_user_seconds(self, ctx,  _id: discord.Option(str, name="user_id", required=False)):
-        if _id == 0:
+    async def _get_user_seconds(self, ctx,  _id: discord.Option(str, name="user_id", default='')):
+        if _id == '':
             _id = ctx.author.id
         try:
             _id = int(_id)
