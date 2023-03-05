@@ -7,11 +7,13 @@ from asyncio import sleep, set_event_loop_policy, WindowsSelectorEventLoopPolicy
 from dotenv import load_dotenv
 
 logging.basicConfig(level=logging.INFO)
-set_event_loop_policy(WindowsSelectorEventLoopPolicy())
 
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 DEBUG = os.getenv('DEBUG')
+
+if DEBUG:
+    set_event_loop_policy(WindowsSelectorEventLoopPolicy())
 
 #intents = discord.Intents.members + discord.Intents.default()
 intents = discord.Intents.default()
