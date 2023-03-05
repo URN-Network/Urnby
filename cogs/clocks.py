@@ -593,7 +593,7 @@ class Clocks(commands.Cog):
             return
         
         secs = await db.get_user_seconds(ctx.guild.id, _id)
-        await ctx.send_response(content=f'{id} has {secs}')
+        await ctx.send_response(content=f'{_id} has {secs}')
     
     # ==============================================================================
     # Admin functions
