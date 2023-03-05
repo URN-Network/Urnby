@@ -516,11 +516,12 @@ class Clocks(commands.Cog):
                                     _public: discord.Option(bool, name="public", required=False, default=False)):
         if _id == 0:
             _id = ctx.author.id
-        try:
-            _id = int(id)
-        except ValueError as err:
-            ctx.send_response(content=f'id must be a valid integer {err}', ephemeral=True)
-            return
+        else:
+            try:
+                _id = int(_id)
+            except ValueError as err:
+                ctx.send_response(content=f'id must be a valid integer {err}', ephemeral=True)
+                return
         res = await db.get_historical_user(ctx.guild.id, _id)
         if len(res) == 0:
             await ctx.send_response(content=f"{member.display_name} has no recorded sessions", ephemeral=True)
@@ -582,7 +583,7 @@ class Clocks(commands.Cog):
                 
     @commands.slash_command(name="getuserseconds", description='Get total number of seconds that a user has accrued')
     @is_member()
-    async def _get_user_seconds(self, ctx,  id: discord.Option(str, name="user_id", required=False)):
+    async def _get_user_seconds(self, ctx,  _id: discord.Option(str, name="user_id", required=False)):
         if _id == 0:
             _id = ctx.author.id
         try:
