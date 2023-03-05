@@ -84,24 +84,25 @@ class Misc(commands.Cog):
         
     @commands.slash_command(name="ownerdelmsg", description="Owner command, must be ran in channel where message is to be deleted")
     @commands.is_owner()
-    async def _del(self, ctx, messageid: discord.Option(int, name='messageid', required=True)):
-        msg = await ctx.channel.fetch_message(messageid)
+    async def _del(self, ctx, messageid: discord.Option(str, name='messageid', required=True)):
+        msg = await ctx.channel.fetch_message(int(messageid))
         res = "Failed"
-        if msg and msg.author.id == ctx.author.id:
-            msg.delete()
+        if msg and int(msg.author.id) == int(self.bot.user.id):
+            await msg.delete()
             res = "Succeeded"
         await ctx.send_response(f"Deletion of msgid {messageid} was {res}", ephemeral=True)
         
     @commands.slash_command(name='configadd')
     @is_admin()
     async def _add_config(self, ctx, 
-                          _key: discord.Option(name="key", choices=["member_roles", "admin_roles", "command_channels", "max_active"], required=True),
-                          _value: discord.Option(int, name="value", required=True)):
+                          _key: discord.Option(str, name="key", choices=["member_roles", "admin_roles", "command_channels", "max_active", "dashboard_channel"], required=True),
+                          _value: discord.Option(str, name="value", required=True)):
+        
         guild_config = get_guild_config(str(ctx.guild.id))
-        if _key == "max_active":
-            guild_config[_key] = _value
+        if _key == "max_active" or _key == "dashboard_channel":
+            guild_config[_key] = int(_value)
         else:
-            guild_config[_key].append(_value)
+            guild_config[_key].append(int(_value))
         save_guild_config(str(ctx.guild.id), guild_config)
         await ctx.send_response(content=f"Config item set - {_key} = {guild_config[_key]}")
             
@@ -149,11 +150,14 @@ def get_guild_config(guild_id):
     return guild_config
 
 def save_guild_config(guild_id, new_guild_config):
-    config = get_guild_config(guild_id)
+    config = get_config()
     config[guild_id] = new_guild_config
     json.dump(config, open('data/config.json', 'w', encoding='utf-8'), indent=1)
     return True
-    
+
+def get_config():
+    return json.load(open('data/config.json', 'r', encoding='utf-8'))
+
 def setup(bot):
     bot.add_cog(Misc(bot))
 

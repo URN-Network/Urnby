@@ -1,6 +1,8 @@
 # Builtin
 import datetime
 import json
+import asyncio
+import time
 
 # External
 import discord
@@ -16,48 +18,79 @@ from checks.IsCommandChannel import is_command_channel, NotCommandChannel
 from checks.IsMemberVisible import is_member_visible, NotMemberVisible
 from checks.IsMember import is_member, NotMember
 
+REFRESH_TYPE = 'seconds'
+REFRESH_TIME = 60
 
 class Dashboard(commands.Cog):
     
     def __init__(self, bot):
         self.bot = bot
         self.printer.start()
-        self.lastmsg = {}
+        self.delay = {}
+        
         print('Initilization on dashboard complete')
         
+            
     @commands.Cog.listener()
-    async def cog_unload(ctx):
-        for key, value in self.lastmsg:
-            msg = await self.bot.fetch_guild(key).fetch_channel(value['channel']).fetch_message(value['msgid'])
-            jump = msg.juml_url
-            await msg.delete()
-            print(f"Deleted dashboard message {jump}")
+    async def on_ready(self):
+        missing_tables = await db.check_tables(['historical', 'session', 'session_history', 'active', 'tod'])
+        if missing_tables:
+            print(f"Warning, Dashboard reports missing the following tables in db: {missing_tables}")
+            
+        for guild in self.bot.guilds:
+            config = get_config(guild.id)
+            if not config or not config.get('dashboard_channel'):
+                continue
+            channel = await guild.fetch_channel(config['dashboard_channel'])
+            def chk(msg):
+                if msg.author.id == self.bot.user.id:
+                    return True
+                return False
+            await channel.purge(check=chk)
+    
         
-    @commands.slash_command(name="timeleft")
+    def cog_unload(self):
+        self.printer.stop()
+        print('Dashboard update stopped', flush=True)
+    
+    @commands.slash_command(name="dashboardtimeleft")
     @is_member()
     @is_command_channel()
     @is_member_visible()
     async def _timeleft(self, ctx):
         now = datetime.datetime.now(utc_tz)
         delta = self.printer.next_iteration - now
-        await ctx.send_response(content=f'{delta}')
-    
-    @commands.slash_command(name="dashboardhalt")
-    @commands.is_owner()
+        await ctx.send_response(content=f'Time till dashboard refresh check {delta}')
+        
+    @commands.slash_command(name="dashboardrefresh")
+    @is_member()
     @is_command_channel()
     @is_member_visible()
-    async def _halt(self, ctx):
-        print("Halting Dashboard cycle")
-        await ctx.send_response("Stopping Dashboard Cycle")
-        self.printer.stop()
+    async def _refresh(self, ctx):
+        session = await db.get_session(ctx.guild.id)
+        if self.delay.get(ctx.guild.id) and not session:
+            self.delay[ctx.guild.id] = False
+        await ctx.send_response(f"Enabling refresh for the next dashboard update")
         
-    @tasks.loop(minutes = 1)
+    @tasks.loop(**{REFRESH_TYPE:REFRESH_TIME})
     async def printer(self):
         for guild in self.bot.guilds:
-           
-            config = self.get_config(guild.id)
+            config = get_config(guild.id)
             if not config or not config.get('dashboard_channel'):
                 continue
+            session_real = await db.get_session(guild.id)
+            if self.delay.get(guild.id) and session_real:
+                self.delay[guild.id] = False
+                channel = await guild.fetch_channel(config['dashboard_channel'])
+                def chk(msg):
+                    if msg.author.id == self.bot.user.id:
+                        return True
+                    return False
+                await channel.purge(check=chk)
+                    
+            elif self.delay.get(guild.id) and not session_real:
+                continue
+            
             now = datetime.datetime.now(tz)
             users = await db.get_unique_users(guild.id)
             
@@ -81,24 +114,26 @@ class Dashboard(commands.Cog):
                     item['display_name'] = 'placeholder'
                     item['delta'] = get_hours_from_secs(now.timestamp() - item['in_timestamp'])
                     continue
-                item['display_name'] = guild.get_member(item['user']).display_name
+                member = await guild.fetch_member(int(item['user']))
+                item['display_name'] = member.display_name
                 item['delta'] = get_hours_from_secs(now.timestamp() - item['in_timestamp'])
             
-                
-            session = await db.get_session(guild.id)
-            if not session:
+            if not session_real:
                 session = {'session': "None"}
                 timestr = ''
             else:
+                session = session_real
                 timestr = datetime.datetime.fromtimestamp(session['start_timestamp'], tz).strftime("%b%d %I:%M%p")
             
-            tod_dict = db.get_tod(guild.id, mob_name="Drusella Sathir")
-            tod_datetime = datetime.datetime.fromtimestamp(tod_dict['tod_timestamp'], tz) + datetime.timedelta(days=1)
-            mins_till_ds = int((tod_datetime - now).total_seconds()/SECS_IN_MINUTE)}
-            if mins_till_ds < 0:
-                mins_till_ds_str = "Unknown"
-            else:
-                mins_till_ds_str = f'{mins_till_ds:4}mins'
+            tod_dict = await db.get_tod(guild.id, mob_name="Drusella Sathir")
+            mins_till_ds_str = "Unknown"
+            if tod_dict:
+                tod_datetime = datetime.datetime.fromtimestamp(tod_dict['tod_timestamp'], tz) + datetime.timedelta(days=1)
+                mins_till_ds = int((tod_datetime - now).total_seconds()/SECS_IN_MINUTE)
+                if mins_till_ds < 0:
+                    mins_till_ds_str = "Unknown"
+                else:
+                    mins_till_ds_str = f'{mins_till_ds:4}mins'
             #TODO get camp queue
             camp_queue = []
             contentlines = ["```\n"]
@@ -133,13 +168,18 @@ class Dashboard(commands.Cog):
             for item in contentlines:
                 content += item
                 
-            lastmsg = await guild.get_channel(config['dashboard_channel']).send(content=content, delete_after=59.5, silent=True)
-            self.lastmsg[str(ctx.guild.id)] = {'channel': ctx.channel_id, 'msgid':lastmsg.id}
-    
+            channel = await guild.fetch_channel(config['dashboard_channel'])
+            if not session_real:
+                await channel.send(content=content+"Paused till session start", silent=True)
+                self.delay[guild.id] = True
+            else:
+                await channel.send(content=content, delete_after=REFRESH_TIME+.5, silent=True)
+                self.delay[guild.id] = False
             
-    def get_config(self, guild_id):
-        return json.load(open('data/config.json', 'r', encoding='utf-8')).get(str(guild_id))
+
+def get_config(guild_id):
+    return json.load(open('data/config.json', 'r', encoding='utf-8')).get(str(guild_id))
         
-        
+
 def setup(bot):
     bot.add_cog(Dashboard(bot))

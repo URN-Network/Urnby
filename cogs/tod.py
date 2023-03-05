@@ -23,7 +23,13 @@ class Tod(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         print('Initilization on tod complete')
-        
+
+    @commands.Cog.listener()
+    async def on_ready(self):
+        missing_tables = await db.check_tables(['tod'])
+        if missing_tables:
+            print(f"Warning, ToD reports missing the following tables in db: {missing_tables}")
+    
     @commands.slash_command(name='tod', description='Entered tod must be todays date, or using the optional daybefore parameter, yesterday')
     async def _tod(self, ctx, 
                        tod: discord.Option(str, name='tod', description="Use when time is not 'now' - 24hour clock time EST (ex 14:49)" , default='now'),
@@ -52,7 +58,7 @@ class Tod(commands.Cog):
                "_DEBUG_submitted_by": ctx.author.display_name, 
                "_DEBUG_tod_datetime": tod_datetime.isoformat(), 
                }
-        row = db.store_tod(ctx.guild.id, rec)
+        row = await db.store_tod(ctx.guild.id, rec)
         await ctx.send_response(content=f"Set tod at {rec['_DEBUG_tod_datetime']}, spawn will happen at {(tod_datetime+datetime.timedelta(days=1)).isoformat()}")
         return
         

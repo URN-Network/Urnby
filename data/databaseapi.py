@@ -1,6 +1,19 @@
 import aiosqlite
 from static.common import get_hours_from_secs
 
+async def check_tables(tbls):
+    l = []
+    async with aiosqlite.connect('data/urnby.db') as db:
+        query = "SELECT name FROM sqlite_master WHERE type='table';"
+        async with db.execute(query) as cursor:
+            rows = await cursor.fetchall()
+            l = [_[0] for _ in rows]
+    if set(tbls).issubset(set(l)):
+        
+        return []
+    return set(tbls) - set(l)
+        
+
 async def flush_wal():
     async with aiosqlite.connect('data/urnby.db') as db:
         try:
@@ -266,14 +279,16 @@ async def get_tod(guild_id, mob_name="Drusella Sathir") -> dict:
         query = f"SELECT rowid, * FROM tod WHERE guild = {guild_id} ORDER BY submitted_timestamp DESC LIMIT 1"
         async with db.execute(query) as cursor:
             row = await cursor.fetchone()
+            if not row:
+                return None
             res = dict(row)
     return res
     
 async def store_tod(guild_id, info):
     lastrow = 0
     async with aiosqlite.connect('data/urnby.db') as db:
-        query = f"""INSERT INTO tod(guild,       mob,  tod_timestamp,  submitted_timestamp,  submitted_by_id,  _DEBUG_submitted_datetime,  _DEBUG_submitted_by,  _DEBUG_tod_datetime)
-                             VALUES({guild_id}, :mob, :tod_timestamp, :submitted_timestamp, :submitted_by_id, :_DEBUG_submitted_datetime, :_DEBUG_submitted_by, :_DEBUG_tod_datetime))"""
+        query = f"""INSERT INTO tod(server,       mob,  tod_timestamp,  submitted_timestamp,  submitted_by_id,  _DEBUG_submitted_datetime,  _DEBUG_submitted_by,  _DEBUG_tod_datetime)
+                             VALUES({guild_id}, :mob, :tod_timestamp, :submitted_timestamp, :submitted_by_id, :_DEBUG_submitted_datetime, :_DEBUG_submitted_by, :_DEBUG_tod_datetime)"""
         async with db.execute(query, info) as cursor:
             lastrow = cursor.lastrowid
         await db.commit()

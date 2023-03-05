@@ -37,6 +37,7 @@ class Clocks(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.state_lock = asyncio.Lock()
+        
         print('Initilization on clocks complete', flush=True)
     
     def cog_check(self, ctx):
@@ -48,9 +49,10 @@ class Clocks(commands.Cog):
         raise NotCommandChannel()
     
     @commands.Cog.listener()
-    async def on_ready(ctx):
-        #print('clocks on_ready')
-        pass
+    async def on_ready(self):
+        missing_tables = await db.check_tables(['historical', 'session', 'session_history', 'active', 'commands'])
+        if missing_tables:
+            print(f"Warning, missing the following tables in db: {missing_tables}")
     
     async def cog_before_invoke(self, ctx):
         now = datetime.datetime.now(tz)
@@ -131,7 +133,7 @@ class Clocks(commands.Cog):
             await ctx.send_response(content='This command can not be used in Direct Messages')
             return
         config = self.get_config(ctx.guild.id)
-        await ctx.send_response(content=config, ephemeral=not public)
+        await ctx.send_response(content=f"{config}", ephemeral=not public)
     
     # ==============================================================================
     # Activity Commands
@@ -207,6 +209,8 @@ class Clocks(commands.Cog):
     async def _clockout(self, ctx):
         res = await self._inner_clockout(ctx, ctx.author.id)
         await ctx.send_response(content=res['content'])
+        if res['status'] == False:
+            return
         bonus_sessions = await self.get_bonus_sessions(ctx.guild.id, res['record'], res['row'])
         for item in bonus_sessions:
             row = await db.store_new_historical(ctx.guild.id, item)
@@ -250,17 +254,17 @@ class Clocks(commands.Cog):
         # Session Check
         session = await db.get_session(ctx.guild.id)
         if not session:
-            return {'status': False, 'record': None, 'content': f'Sorry, there is no current session to clock out of'}
+            return {'status': False, 'record': None, 'row': None, 'content': f'Sorry, there is no current session to clock out of'}
         
         # Ensure user was unique in active
         actives = await db.get_all_actives(ctx.guild.id)
         found = [_ for _ in actives if _['user'] == user_id]
         if not found:
-            return {'status': False, 'record': None, 'content': f'Did not find you in active records, did you forget to clock in?'}
+            return {'status': False, 'record': None, 'row': None, 'content': f'Did not find you in active records, did you forget to clock in?'}
         if len(found) > 1:
             #error somehow they are clocked in more then once
             raise ValueError(f'Error - user was clocked in more then once guild: {ctx.guild.id} - user: {user_id}')
-            return {'status': False, 'record': found, 'content': f'Error - user was clocked in more then once guild: {ctx.guild.id} - user: {user_id}'}
+            return {'status': False, 'record': found, 'row': None, 'content': f'Error - user was clocked in more then once guild: {ctx.guild.id} - user: {user_id}'}
         record = found[0]
         
         res = await db.remove_active_record(ctx.guild.id, record)
@@ -446,9 +450,16 @@ class Clocks(commands.Cog):
     @commands.slash_command(name='getcommands', description='Ephemeral - Get a list of historical commands submitted to the bot by a user')
     @is_member()
     async def _get_commands(self, ctx, 
-                            _id: discord.Option(int, name="user_id", required=True),
+                            _id: discord.Option(str, name="user_id", required=False, default=0),
                             startat: discord.Option(int, name="start_at", required=False, default=0), 
                             count: discord.Option(int, name="count", required=False, default=10)):
+        if _id == 0:
+            _id = ctx.author.id
+        try:
+            _id = int(id)
+        except ValueError as err:
+            ctx.send_response(content=f'id must be a valid integer {err}', ephemeral=True)
+            return
         res = await db.get_user_commands_history(ctx.guild.id, _id, start_at=int(startat), count=int(count))
         content = f"<@{_id}>'s last {len(res)} commands"
         if startat:
@@ -500,14 +511,15 @@ class Clocks(commands.Cog):
     @commands.slash_command(name="getusersessions", description='Ephemeral - Get list of user\'s historical sessions')
     @is_member()
     async def _cmd_get_user_sessions(self, ctx, 
-                                    _id: discord.Option(int, name="user_id", required=True),
+                                    _id: discord.Option(str, name="user_id", required=False),
                                     _timetype: discord.Option(str, name="timetype", choices=["Hours", "Seconds"], required=False, default='Hours'),
                                     _public: discord.Option(bool, name="public", required=False, default=False)):
+        if _id == 0:
+            _id = ctx.author.id
         try:
-            int(_id)
-        except ValueError:
-            content = f"The ID must be numerical, you can get this by right clicking a user and copy id"
-            await ctx.send_response(content=content, ephemeral=True)
+            _id = int(id)
+        except ValueError as err:
+            ctx.send_response(content=f'id must be a valid integer {err}', ephemeral=True)
             return
         res = await db.get_historical_user(ctx.guild.id, _id)
         if len(res) == 0:
@@ -570,7 +582,15 @@ class Clocks(commands.Cog):
                 
     @commands.slash_command(name="getuserseconds", description='Get total number of seconds that a user has accrued')
     @is_member()
-    async def _get_user_seconds(self, ctx,  id: discord.Option(int, name="user_id", required=True)):
+    async def _get_user_seconds(self, ctx,  id: discord.Option(str, name="user_id", required=False)):
+        if _id == 0:
+            _id = ctx.author.id
+        try:
+            _id = int(id)
+        except ValueError as err:
+            ctx.send_response(content=f'id must be a valid integer {err}', ephemeral=True)
+            return
+        res = await db.get_user_commands_history(ctx.guild.id, _id, start_at=int(startat), count=int(count))
         secs = await db.get_user_seconds(ctx.guild.id, id)
         await ctx.send_response(content=f'{id} has {secs}')
     
@@ -588,10 +608,17 @@ class Clocks(commands.Cog):
     @is_member_visible()
     async def _directurn(self, ctx, 
                         sessionname: discord.Option(str, name="sessionname", required=True),
-                        userid: discord.Option(int, name="userid", required=True),
+                        userid: discord.Option(str, name="userid", required=True),
                         username: discord.Option(str, name="username", required=True),
                         date: discord.Option(str, name="killdate", description="Form YYYY-MM-DD", required=True),
                         time: discord.Option(str, name="killtime", description="Form HH:MM in EST", required=True)):
+        if userid == 0:
+            userid = ctx.author.id
+        try:
+            userid = int(id)
+        except ValueError as err:
+            ctx.send_response(content=f'id must be a valid integer {err}', ephemeral=True)
+            return
         secs = await db.get_user_seconds(ctx.guild.id, userid)
         hours = get_hours_from_secs(secs)
         datetime_kill = datetime.datetime.fromisoformat(date+"T"+time+":00-05:00")
@@ -624,10 +651,18 @@ class Clocks(commands.Cog):
     @is_member()
     @is_member_visible()
     async def _adminchangehistory(self, ctx,
-                                  row: discord.Option(int, name="recordnumber", required=True),
+                                  row: discord.Option(str, name="recordnumber", required=True),
                                   _type: discord.Option(str, name="type", choices=['Clock in time', 'Clock out time'], required=True),
                                   _date: discord.Option(str, name="date", description="Form YYYY-MM-DD", required=True),
                                   time: discord.Option(str, name="time", description="24 hour clock, 12pm midnight is 00:00", required=True)):
+        if _id == 0:
+            _id = ctx.author.id
+        try:
+            _id = int(id)
+        except ValueError as err:
+            ctx.send_response(content=f'id must be a valid integer {err}', ephemeral=True)
+            return
+            
         rec = await db.get_historical_record(ctx.guild.id, row)
         
         if len(rec) == 0 or len(rec) > 1:
@@ -668,14 +703,20 @@ class Clocks(commands.Cog):
     @is_member_visible()
     async def _directrecord(self, ctx,  
                             sessionname: discord.Option(str, name="sessionname", required=True),
-                            userid: discord.Option(int, name="userid", required=True),
+                            userid: discord.Option(str, name="userid", required=True),
                             username: discord.Option(str, name="username", required=True),
                             date: discord.Option(str, name="startdate", description="Form YYYY-MM-DD", required=True),
                             intime: discord.Option(str, name="intime", description="Form HH:MM in EST", required=True),
                             outtime: discord.Option(str, name="outtime", description="Form HH:MM in EST", required=True),
                             character: discord.Option(str, name="character", default=''),
                             dayafter: discord.Option(str, name="dayafter", choices=['True', 'False'], description="Did clockout occur the day after in?", default='False')):
-        
+        if _id == 0:
+            _id = ctx.author.id
+        try:
+            _id = int(id)
+        except ValueError as err:
+            ctx.send_response(content=f'id must be a valid integer {err}', ephemeral=True)
+            return
         if len(intime) == 4:
             intime = "0" + intime
         if len(outtime) == 4:
