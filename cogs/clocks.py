@@ -587,7 +587,7 @@ class Clocks(commands.Cog):
         if _id == 0:
             _id = ctx.author.id
         try:
-            _id = int(id)
+            _id = int(_id)
         except ValueError as err:
             ctx.send_response(content=f'id must be a valid integer {err}', ephemeral=True)
             return
@@ -613,10 +613,8 @@ class Clocks(commands.Cog):
                         username: discord.Option(str, name="username", required=True),
                         date: discord.Option(str, name="killdate", description="Form YYYY-MM-DD", required=True),
                         time: discord.Option(str, name="killtime", description="Form HH:MM in EST", required=True)):
-        if userid == 0:
-            userid = ctx.author.id
         try:
-            userid = int(id)
+            userid = int(userid)
         except ValueError as err:
             ctx.send_response(content=f'id must be a valid integer {err}', ephemeral=True)
             return
@@ -656,13 +654,6 @@ class Clocks(commands.Cog):
                                   _type: discord.Option(str, name="type", choices=['Clock in time', 'Clock out time'], required=True),
                                   _date: discord.Option(str, name="date", description="Form YYYY-MM-DD", required=True),
                                   time: discord.Option(str, name="time", description="24 hour clock, 12pm midnight is 00:00", required=True)):
-        if _id == 0:
-            _id = ctx.author.id
-        try:
-            _id = int(id)
-        except ValueError as err:
-            ctx.send_response(content=f'id must be a valid integer {err}', ephemeral=True)
-            return
             
         rec = await db.get_historical_record(ctx.guild.id, row)
         
@@ -711,10 +702,8 @@ class Clocks(commands.Cog):
                             outtime: discord.Option(str, name="outtime", description="Form HH:MM in EST", required=True),
                             character: discord.Option(str, name="character", default=''),
                             dayafter: discord.Option(str, name="dayafter", choices=['True', 'False'], description="Did clockout occur the day after in?", default='False')):
-        if _id == 0:
-            _id = ctx.author.id
         try:
-            _id = int(id)
+            _id = int(_id)
         except ValueError as err:
             ctx.send_response(content=f'id must be a valid integer {err}', ephemeral=True)
             return
