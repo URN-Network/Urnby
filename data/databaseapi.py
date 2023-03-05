@@ -276,7 +276,7 @@ async def get_tod(guild_id, mob_name="Drusella Sathir") -> dict:
     res = []
     async with aiosqlite.connect('data/urnby.db') as db:
         db.row_factory = aiosqlite.Row
-        query = f"SELECT rowid, * FROM tod WHERE guild = {guild_id} ORDER BY submitted_timestamp DESC LIMIT 1"
+        query = f"SELECT rowid, * FROM tod WHERE server = {guild_id} ORDER BY submitted_timestamp DESC LIMIT 1"
         async with db.execute(query) as cursor:
             row = await cursor.fetchone()
             if not row:
