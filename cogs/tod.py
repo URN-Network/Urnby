@@ -42,13 +42,13 @@ class Tod(commands.Cog):
         if not tod_datetime and len(tod) == 4:
             tod = '0' + tod
         
-        if not tod_datetime:    
-            tod_datetime = datetime.datetime.combine(datetime.date.today()+datetime.timedelta(days=offset), datetime.time.fromisoformat(tod), tz)
-        
         offset = 0
         if daybefore:
             offset = -1
-        
+            
+        if not tod_datetime:    
+            tod_datetime = datetime.datetime.combine(datetime.date.today()+datetime.timedelta(days=offset), datetime.time.fromisoformat(tod), tz)
+            
         rec = {
                "mob": mobname, 
                "tod_timestamp": tod_datetime.timestamp(), 
