@@ -52,7 +52,7 @@ class Tod(commands.Cog):
         rec = {
                "mob": mobname, 
                "tod_timestamp": tod_datetime.timestamp(), 
-               "submitted_timestamp": tod_datetime.timestamp(), 
+               "submitted_timestamp": now.timestamp(), 
                "submitted_by_id": ctx.author.id,
                "_DEBUG_submitted_datetime": now.isoformat(), 
                "_DEBUG_submitted_by": ctx.author.display_name, 
@@ -66,7 +66,7 @@ class Tod(commands.Cog):
     async def _get_tod(self, ctx):
         rec = await db.get_tod(ctx.guild.id)
         now = datetime.datetime.now(tz)
-        hours_till = get_hours_from_secs(now.timestamp() - (datetime.datetime.fromtimestamp(rec['tod_timestamp'], tz)+datetime.timedelta(days=1)).timestamp())
+        hours_till = get_hours_from_secs((datetime.datetime.fromtimestamp(rec['tod_timestamp'], tz)+datetime.timedelta(days=1)).timestamp() - now.timestamp())
         await ctx.send_response(content=f"ToD was {rec['_DEBUG_tod_datetime']} {rec['mob']} will spawn in {hours_till} hours", ephemeral=True)
 
 async def time_delta_to_minutes(delta:datetime.timedelta) -> float:
