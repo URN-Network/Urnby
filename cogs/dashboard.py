@@ -59,7 +59,9 @@ class Dashboard(commands.Cog):
     @is_member_visible()
     async def _timeleft(self, ctx):
         now = datetime.datetime.now(utc_tz)
-        delta = self.printer.next_iteration - now
+        delta = "Printer not scheduled"
+        if self.printer.next_iteration:
+            delta = self.printer.next_iteration - now
         await ctx.send_response(content=f'Time till dashboard refresh check {delta}')
         
     @commands.slash_command(name="dashboardrefresh")
