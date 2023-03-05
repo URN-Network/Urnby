@@ -591,7 +591,7 @@ class Clocks(commands.Cog):
         except ValueError as err:
             ctx.send_response(content=f'id must be a valid integer {err}', ephemeral=True)
             return
-        res = await db.get_user_commands_history(ctx.guild.id, _id, start_at=int(startat), count=int(count))
+        
         secs = await db.get_user_seconds(ctx.guild.id, id)
         await ctx.send_response(content=f'{id} has {secs}')
     
