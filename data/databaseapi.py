@@ -295,6 +295,60 @@ async def store_tod(guild_id, info):
     return lastrow
     
     # ==============================================================================
+    # Replacement Queue
+    # ============================================================================== 
+
+async def get_replacement_list(guild_id) -> list:
+    res = []
+    async with aiosqlite.connect('data/urnby.db') as db:
+        db.row_factory = aiosqlite.Row
+        query = f"SELECT rowid, * FROM reps WHERE server = {guild_id} ORDER BY in_timestamp"
+        async with db.execute(query) as cursor:
+            rows = await cursor.fetchall()
+            res = [dict(row) for row in rows]
+    return res
+
+async def add_replacement(guild_id, replacement):
+    current_rep_list = await get_replacement_list(guild_id)
+    for item in current_rep_list:
+        if item['user'] == replacement['user']:
+            return None
+            
+    lastrow = 0
+    async with aiosqlite.connect('data/urnby.db') as db:
+        query = f"""INSERT INTO reps(server,      user,  name, in_timestamp)
+                                VALUES({guild_id}, :user, :name, :in_timestamp)"""
+        async with db.execute(query, replacement) as cursor:
+            lastrow = cursor.lastrowid
+        await db.commit()
+    return lastrow
+
+async def remove_replacement(guild_id, user_id):
+    lastrow = 0
+    async with aiosqlite.connect('data/urnby.db') as db:
+        db.row_factory = aiosqlite.Row
+        query = f"""SELECT count(*) FROM reps WHERE server = {guild_id} AND user = {user_id}"""
+        async with db.execute(query) as cursor:
+            res = await cursor.fetchall()
+            if dict(res[0])['count(*)'] == 0:
+                return None
+        query = f"""DELETE FROM reps WHERE server = {guild_id} AND user = {user_id}"""
+        async with db.execute(query) as cursor:
+            lastrow = cursor.lastrowid
+        await db.commit()
+    return lastrow
+
+async def clear_replacement_queue(guild_id):
+    lastrow = 0
+    async with aiosqlite.connect('data/urnby.db') as db:
+        db.row_factory = aiosqlite.Row
+        query = f"""DELETE FROM reps"""
+        async with db.execute(query) as cursor:
+            lastrow = cursor.lastrowid
+        await db.commit()
+    return lastrow
+
+    # ==============================================================================
     # Misc
     # ============================================================================== 
     

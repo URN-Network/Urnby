@@ -10,6 +10,7 @@ tz = timezone('EST')
 from pathlib import Path
 
 # Internal
+import data.databaseapi as db
 
 CLASSES = json.load(open('static/classes.json', 'r', encoding='utf-8'))
 
@@ -22,51 +23,71 @@ class CampQueue(commands.Cog):
     @commands.Cog.listener()
     async def on_connect(self):
         print(f'campqueue connected to discord')
-        data_dirs = ['data/campqueue.json']
-        # Set up initilized db files if not existing and all guilds are initilized
-        for _dir in data_dirs:
-            if not Path(_dir).exists():
-                print(f'init path - {_dir}')
-                file = {}
-            else:
-                file = json.load(open(_dir, 'r', encoding='utf-8'))
-            
-            for guild in self.bot.guilds:
-                if str(guild.id) not in list(file.keys()):
-                    print(f'init guild - {guild.id} for {_dir}')
-                    if 'session' in _dir:
-                        file[str(guild.id)] = {}
-                    else:
-                        file[str(guild.id)] = []
-                    
-            json.dump(file, open(_dir, 'w', encoding='utf-8'), indent=1)
 
-    @commands.slash_command(name='campqueue')
-    async def _campqueue(self, ctx, 
-                         character: discord.Option(name='character', input_type=str, required=True),
-                         _class: discord.Option(name='class', choices=CLASSES, required=True),
-                         hours: discord.Option(name='hours', description='Estimated hours till you leave the camp or queue', input_type=int, required=True),
-                         extra: discord.Option(name='extra', description='Extra information if you have additional classes etc', input_type=str, required=False, default='')
-                         ):
-        queue = await self.get_queue(ctx.guild.id)
-        for player in queue:
-            if player['user'] == ctx.author.id:
-                await ctx.send_response(content=f'You are already in the queue! To change values in a queue use campeditqueue or camp dequeue to leave the queue')
-        
-        pass
+    @commands.slash_command(name='getqueue')
+    async def _getcampqueue(self, ctx):
+        if ctx.guild is None:
+            await ctx.send_response(content='This command can not be used in Direct Messages')
+            return
+        reps = await db.get_replacement_list(ctx.guild.id)
+
+        # Make Pretty.
+        content = '_ _\nCurrent replacement order: '
+        for rep in reps:
+            content += f'<@{rep["user"]}> --> '
+        content += f'<END>'
+        await ctx.send_response(content=content, ephemeral=False, allowed_mentions=discord.AllowedMentions(users=False))
+
+
+    @commands.slash_command(name='campenqueue')
+    async def _campenqueue(self, ctx):
+        now = datetime.datetime.now(tz)
+        rep = {
+            'user': ctx.author.id,
+            'name': ctx.author.display_name,
+            'in_timestamp': int(now.timestamp())
+        }
+        added = await db.add_replacement(ctx.guild.id, rep)
+        if added is not None:
+            await ctx.send_response(content=f'{ctx.author.display_name} Successfully added to replacement queue')
+        else:
+            await ctx.send_response(content=f'You are already in the queue')
     
     @commands.slash_command(name='campdequeue')
     async def _campdequeue(self, ctx):
-        pass
-        
-    @commands.slash_command(name='campeditqueue')
-    async def _campeditqueue(self, ctx):
-        pass
+        removed = await db.remove_replacement(ctx.guild.id, ctx.author.id)
+        if removed is not None:
+            await ctx.send_response(content=f'{ctx.author.display_name} Successfully removed from replacement queue')
+        else:
+            await ctx.send_response(content=f'You are not in the queue')
 
-    # ==============================================================================
-    # Database functions
-    # ==============================================================================
-    
+    @commands.slash_command(name='admin_campenqueue')
+    async def _admincampenqueue(self, ctx,
+                _userid: discord.Option(int, name="userid", required=True),
+                intime: discord.Option(int, name="intime", required=False, default=0)):
+
+        if intime == 0:
+            intime = int(datetime.datetime.now(tz).timestamp())
+        
+        rep = {
+            'user': _userid,
+            'name': "adminuser",
+            'in_timestamp': intime
+        }
+        await db.add_replacement(ctx.guild.id, rep)
+        await ctx.send_response(content=f'Added.')
+        
+    @commands.slash_command(name='admin_campdequeue')
+    async def _admincampdequeue(self, ctx,
+                _userid: discord.Option(str, name="userid", required=True)):
+        await db.remove_replacement(ctx.guild.id, _userid)
+        await ctx.send_response(content=f'Removed.')
+
+    @commands.slash_command(name='admin_campqueueflush')
+    async def _admincampqueueflush(self, ctx):
+        await db.clear_replacement_queue(ctx.guild.id)
+        await ctx.send_response(content=f'Queue cleared.')
+
 
 def setup(bot):
     bot.add_cog(CampQueue(bot))

@@ -32,6 +32,7 @@ Technical Info
 	dotenv - allows us to store secrets in environment, ignoreing the .env file to share code without sharing secrets (https://12factor.net/config)
 	pytz - Functionality for datetime timezones
 	aiosqlite - Non blocking wrapper for sqlite-python interfacing
+	persist-queue - thread safe file backed queue (file or sqlite options)
 	
 	SQLite has WAL mode enabled to allow concurrent read/writes (https://www.sqlite.org/walformat.html)
 	
