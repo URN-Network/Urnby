@@ -9,6 +9,7 @@ from pytz import timezone
 tz = timezone('EST')
 
 # Internal
+import data.databaseapi as db
 from checks.IsAdmin import is_admin, NotAdmin
 from checks.IsCommandChannel import is_command_channel, NotCommandChannel
 from checks.IsMemberVisible import is_member_visible, NotMemberVisible
@@ -33,7 +34,7 @@ class Misc(commands.Cog):
             guild_id = 'DM'
         else:
             guild_id = ctx.guild.id
-        print(f'{now.isoformat()} [{guild_id}] - Command {ctx.command.qualified_name} by {ctx.author.name} - {ctx.author.id} - {ctx.selected_options[0]["value"]}', flush=True)
+        #print(f'{now.isoformat()} [{guild_id}] - Command {ctx.command.qualified_name} by {ctx.author.name} - {ctx.author.id} - {ctx.selected_options[0]["value"]}', flush=True)
         #command = {'command_name': ctx.command.qualified_name, 'options': str(ctx.selected_options), 'datetime': now.isoformat(), 'user': ctx.author.id, 'user_name': ctx.author.name, 'channel_name': ctx.channel.name}
         #await self.store_command(guild_id, command)
         return
@@ -92,6 +93,12 @@ class Misc(commands.Cog):
             res = "Succeeded"
         await ctx.send_response(f"Deletion of msgid {messageid} was {res}", ephemeral=True)
         
+    @commands.slash_command(name="initdb", description="Owner command, initialize db tables")
+    @commands.is_owner()
+    async def _init_db(self, ctx):
+        await db.init_database()
+        await ctx.send_response(content=f"Database initialized")
+
     @commands.slash_command(name='configadd')
     @is_admin()
     async def _add_config(self, ctx, 

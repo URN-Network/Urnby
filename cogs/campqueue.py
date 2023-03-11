@@ -12,8 +12,6 @@ from pathlib import Path
 # Internal
 import data.databaseapi as db
 
-CLASSES = json.load(open('static/classes.json', 'r', encoding='utf-8'))
-
 class CampQueue(commands.Cog):
     
     def __init__(self, bot):
@@ -29,7 +27,7 @@ class CampQueue(commands.Cog):
         if ctx.guild is None:
             await ctx.send_response(content='This command can not be used in Direct Messages')
             return
-        reps = await db.get_replacement_list(ctx.guild.id)
+        reps = await db.get_replacement_queue(ctx.guild.id)
 
         # Make Pretty.
         content = '_ _\nCurrent replacement order: '
@@ -44,7 +42,6 @@ class CampQueue(commands.Cog):
         now = datetime.datetime.now(tz)
         rep = {
             'user': ctx.author.id,
-            'name': ctx.author.display_name,
             'in_timestamp': int(now.timestamp())
         }
         added = await db.add_replacement(ctx.guild.id, rep)
