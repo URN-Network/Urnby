@@ -335,8 +335,8 @@ async def add_replacement(guild_id, replacement):
     lastrow = 0
     async with aiosqlite.connect('data/urnby.db') as db:
         try:
-            query = f"""INSERT INTO reps(server,      user, in_timestamp)
-                                    VALUES({guild_id}, :user, :in_timestamp)"""
+            query = f"""INSERT INTO reps(server,      user, name, in_timestamp)
+                                    VALUES({guild_id}, :user, :name, :in_timestamp)"""
             async with db.execute(query, replacement) as cursor:
                 lastrow = cursor.lastrowid
         except aiosqlite.IntegrityError:

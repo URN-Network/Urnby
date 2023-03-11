@@ -136,8 +136,8 @@ class Dashboard(commands.Cog):
                     mins_till_ds_str = "Unknown"
                 else:
                     mins_till_ds_str = f'{mins_till_ds:4}mins'
-            #TODO get camp queue
-            camp_queue = await db.get_replacement_queue(guild.id)
+
+            reps = await db.get_replacement_queue(guild.id)
             contentlines = ["\n```"]
             contentlines.append(f" {'Active Session':33}DS in: {mins_till_ds_str:8}|")
             contentlines.append(f"{'-'*49}-")
@@ -148,14 +148,13 @@ class Dashboard(commands.Cog):
             for item in actives:
                 contentlines.append(f" {item['display_name'][:29]:30} {item['delta']:17.2f}|")
             contentlines.append(f"{'-'*49}|")
-            contentlines.append(f" {'Camp Queue':48}|")
+            contentlines.append(f" {'Rep List':48}|")
             contentlines.append(f"{'-'*49}|")
-            for item in camp_queue:
-                user = await guild.fetch_member(item["user"])
-                contentlines.append(f" {user.display_name[:29]:47} |")
+            for rep in reps:
+                contentlines.append(f" {rep['name'][:29]:47} |")
             lines = 2
             ex_lines = 7
-            cont_lines = len(actives) + len(camp_queue)
+            cont_lines = len(actives) + len(reps)
             
             #Appending 2nd column
             contentlines[1] += f" Top {ex_lines+cont_lines} in Hours\n"
@@ -173,10 +172,10 @@ class Dashboard(commands.Cog):
                 
             channel = await guild.fetch_channel(config['dashboard_channel'])
             if not session_real:
-                await channel.send(content=content+"Paused till session start", silent=True, allowed_mentions=discord.AllowedMentions(users=False))
+                await channel.send(content=content+"Paused till session start", silent=True)
                 self.delay[guild.id] = True
             else:
-                await channel.send(content=content, delete_after=REFRESH_TIME+.5, silent=True, allowed_mentions=discord.AllowedMentions(users=False))
+                await channel.send(content=content, delete_after=REFRESH_TIME+.5, silent=True)
                 self.delay[guild.id] = False
             
 

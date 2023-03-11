@@ -17,7 +17,7 @@ if DEBUG:
     set_event_loop_policy(WindowsSelectorEventLoopPolicy())
 
 intents = discord.Intents.default()
-intents.members = True
+#intents.members = True
 UrnbyBot = discord.Bot(intents=intents)
 
 cogs_list = [
@@ -31,7 +31,7 @@ cogs_list = [
 
 
 @UrnbyBot.event
-async def on_ready():    
+async def on_ready():
     print(f"{UrnbyBot.user} is online!")
     '''
     if DEBUG == "True":
