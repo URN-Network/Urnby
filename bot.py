@@ -16,8 +16,8 @@ if DEBUG:
     from asyncio import set_event_loop_policy, WindowsSelectorEventLoopPolicy
     set_event_loop_policy(WindowsSelectorEventLoopPolicy())
 
-#intents = discord.Intents.members + discord.Intents.default()
 intents = discord.Intents.default()
+#intents.members = True
 UrnbyBot = discord.Bot(intents=intents)
 
 cogs_list = [
@@ -28,6 +28,7 @@ cogs_list = [
     'dashboard',
     'tod',
 ]
+
 
 @UrnbyBot.event
 async def on_ready():

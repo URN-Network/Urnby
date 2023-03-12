@@ -136,9 +136,9 @@ class Dashboard(commands.Cog):
                     mins_till_ds_str = "Unknown"
                 else:
                     mins_till_ds_str = f'{mins_till_ds:4}mins'
-            #TODO get camp queue
-            camp_queue = []
-            contentlines = ["```\n"]
+
+            reps = await db.get_replacement_queue(guild.id)
+            contentlines = ["\n```"]
             contentlines.append(f" {'Active Session':33}DS in: {mins_till_ds_str:8}|")
             contentlines.append(f"{'-'*49}-")
             contentlines.append(f" {session['session'][:27]:27} @ {timestr:13} EST |")
@@ -148,13 +148,13 @@ class Dashboard(commands.Cog):
             for item in actives:
                 contentlines.append(f" {item['display_name'][:29]:30} {item['delta']:17.2f}|")
             contentlines.append(f"{'-'*49}|")
-            contentlines.append(f" {'Camp Queue':33}Hours available|")
+            contentlines.append(f" {'Rep List':48}|")
             contentlines.append(f"{'-'*49}|")
-            for item in camp_queue:
-                contentlines.append(f" {item['display_name'][:29]:30} {item['delta']:17.2f}|")
+            for rep in reps:
+                contentlines.append(f" {rep['name'][:29]:47} |")
             lines = 2
             ex_lines = 7
-            cont_lines = len(actives) + len(camp_queue)
+            cont_lines = len(actives) + len(reps)
             
             #Appending 2nd column
             contentlines[1] += f" Top {ex_lines+cont_lines} in Hours\n"
