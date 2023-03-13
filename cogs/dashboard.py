@@ -7,13 +7,10 @@ import time
 # External
 import discord
 from discord.ext import commands, tasks
-from pytz import timezone
-tz = timezone('EST')
-utc_tz = timezone('UTC')
 
 # Internal
 import data.databaseapi as db
-from static.common import get_hours_from_secs, SECS_IN_MINUTE, MINUTE_IN_HOUR
+import static.common as com
 from checks.IsCommandChannel import is_command_channel, NotCommandChannel
 from checks.IsMemberVisible import is_member_visible, NotMemberVisible
 from checks.IsMember import is_member, NotMember
@@ -55,7 +52,7 @@ class Dashboard(commands.Cog):
     @is_command_channel()
     @is_member_visible()
     async def _timeleft(self, ctx):
-        now = datetime.datetime.now(utc_tz)
+        now = com.get_current_datetime()
         delta = "Printer not scheduled"
         if self.printer.next_iteration:
             delta = self.printer.next_iteration - now
@@ -91,18 +88,18 @@ class Dashboard(commands.Cog):
             historical_recs_from_session = []
             if session_real:
                 historical_recs_from_session = await db.get_historical_session(guild.id, session_real['session'])
-            now = datetime.datetime.now(tz)
+            now = com.get_current_datetime()
             tod_dict = await db.get_tod(guild.id, mob_name="Drusella Sathir")
             mins_till_ds_str = "Unknown"
             if tod_dict:
-                tod_datetime = datetime.datetime.fromtimestamp(tod_dict['tod_timestamp'], tz) + datetime.timedelta(days=1)
-                mins_till_ds = int((tod_datetime - now).total_seconds()/SECS_IN_MINUTE)
+                tod_datetime = com.datetime_from_timestamp(tod_dict['tod_timestamp']) + datetime.timedelta(days=1)
+                mins_till_ds = int((tod_datetime - now).total_seconds()/com.SECS_IN_MINUTE)
                 if mins_till_ds < 0:
                     mins_till_ds_str = "Unknown"
                 else:
                     mins_till_ds_str = f'{mins_till_ds:4}mins'
             _open = ""
-            if mins_till_ds >= 0 and mins_till_ds <= MINUTE_IN_HOUR * CAMP_HOURS_TILL_DS:
+            if mins_till_ds >= 0 and mins_till_ds <= com.MINUTE_IN_HOUR * CAMP_HOURS_TILL_DS:
                 _open = "<OPEN>"
                 # If we are in delayed mode, and we havent refreshed with the new transition, refresh automatically
                 if self.delay.get(guild.id) and not self.open_transitioned.get(guild.id):
@@ -123,29 +120,27 @@ class Dashboard(commands.Cog):
             
             sorted_res = list(sorted(res, key= lambda user: user['total'], reverse=True))
             for item in sorted_res:
-                try:
-                    member = await guild.fetch_member(int(item['user']))
-                except discord.errors.NotFound:
+                if int(item['user']) not in [_.id for _ in guild.members]:
                     item['display_name'] = 'placeholder'
                     continue
-                item['display_name'] = member.display_name
+                else:
+                    item['display_name'] = member.display_name
             
             actives = await db.get_all_actives(guild.id)
             
             for item in actives:
-                try:
-                    member = await guild.fetch_member(int(item['user']))
-                except discord.errors.NotFound:
+                if int(item['user']) not in [_.id for _ in guild.members]:
                     item['display_name'] = 'placeholder'
-                    item['delta'] = get_hours_from_secs(now.timestamp() - item['in_timestamp'])
+                    item['delta'] = com.get_hours_from_secs(now.timestamp() - item['in_timestamp'])
+                    mem_historical = [_ for _ in historical_recs_from_session if _['user'] == item['user']]
                     item['ses_delta'] = item['delta']
-                member = await guild.fetch_member(int(item['user']))
-                item['display_name'] = member.display_name
-                item['delta'] = get_hours_from_secs(now.timestamp() - item['in_timestamp'])
-                mem_historical = [_ for _ in historical_recs_from_session if _['user'] == item['user']]
-                item['ses_delta'] = item['delta']
+                else:
+                    item['display_name'] = member.display_name
+                    item['delta'] = com.get_hours_from_secs(now.timestamp() - item['in_timestamp'])
+                    mem_historical = [_ for _ in historical_recs_from_session if _['user'] == item['user']]
+                    item['ses_delta'] = item['delta']
                 for _item in mem_historical:
-                   item['ses_delta'] += get_hours_from_secs(_item['out_timestamp'] - _item['in_timestamp'])
+                   item['ses_delta'] += com.get_hours_from_secs(_item['out_timestamp'] - _item['in_timestamp'])
                 item['ses_delta'] = round(item['ses_delta'],2)
             
             if not session_real:
@@ -153,7 +148,7 @@ class Dashboard(commands.Cog):
                 timestr = ''
             else:
                 session = session_real
-                timestr = datetime.datetime.fromtimestamp(session['start_timestamp'], tz).strftime("%b%d %I:%M%p")
+                timestr = com.datetime_from_timestamp(session['start_timestamp']).strftime("%b%d %I:%M%p")
             
             
             #TODO get camp queue

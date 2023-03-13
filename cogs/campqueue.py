@@ -5,8 +5,6 @@ import json
 # External
 import discord
 from discord.ext import commands
-from pytz import timezone
-tz = timezone('EST')
 from pathlib import Path
 
 # Internal

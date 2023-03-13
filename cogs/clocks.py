@@ -8,13 +8,11 @@ from pathlib import Path
 # External
 import discord
 from discord.ext import commands
-from pytz import timezone
-tz = timezone('EST')
 from aiosqlite import OperationalError
 
 # Internal
 import data.databaseapi as db
-from static.common import get_hours_from_secs, scram
+import static.common as com
 from views.ClearOutView import ClearOutView
 from checks.IsAdmin import is_admin, NotAdmin
 from checks.IsCommandChannel import is_command_channel, NotCommandChannel
@@ -55,8 +53,7 @@ class Clocks(commands.Cog):
             print(f"Warning, missing the following tables in db: {missing_tables}")
     
     async def cog_before_invoke(self, ctx):
-        now = datetime.datetime.now(tz)
-        now = now.replace(microsecond = 0)
+        now = com.get_current_datetime()
         guild_id = None
         if not ctx.guild:
             guild_id = 'DM'
@@ -71,7 +68,7 @@ class Clocks(commands.Cog):
     # Error Handlers
     # ==============================================================================
     async def cog_command_error(self, ctx: commands.Context, error: commands.CommandError):
-        now = datetime.datetime.now(tz).replace(microsecond = 0)
+        now = com.get_current_datetime()
         guild_id = None
         channel_name = None
         if not ctx.guild:
@@ -142,14 +139,14 @@ class Clocks(commands.Cog):
     @is_member()
     async def _get_active(self, ctx, public: discord.Option(bool, name='public', default=False)):
         actives = await db.get_all_actives(ctx.guild.id)
-        now = int(datetime.datetime.now(tz).timestamp())
+        timestamp_now = com.get_current_timestamp()
         if len(actives) == 0:
             await ctx.send_response(content=f"There are no active users at this time", ephemeral=not public)
             return
         content = "_ _\nActive Users:\n```"
         for active in actives:
             user = await ctx.guild.fetch_member(active['user'])
-            delta = get_hours_from_secs(now - active['in_timestamp'])
+            delta = com.get_hours_from_secs(timestamp_now - active['in_timestamp'])
             content += f"\n{user.display_name[:19]:20}{delta:.2f} hours active"
         content += "```"
         await ctx.send_response(content=content, ephemeral=not public)
@@ -174,7 +171,7 @@ class Clocks(commands.Cog):
                 await ctx.send_response(content=f'You are already active, did you mean to clockout?')
                 return
         
-        now = datetime.datetime.now(tz)
+        now = com.get_current_datetime()
         # Create entry and store
         doc = {
                 'user': ctx.author.id,
@@ -189,7 +186,7 @@ class Clocks(commands.Cog):
             }
         
         await db.store_active_record(ctx.guild.id, doc)
-        await ctx.send_response(content=f'{ctx.author.display_name} {scram("Successfully")} clocked in at <t:{doc["in_timestamp"]}:f>')
+        await ctx.send_response(content=f'{ctx.author.display_name} {com.scram("Successfully")} clocked in at <t:{doc["in_timestamp"]}:f>')
         
         config = self.get_config(ctx.guild.id)
         if 'max_active' in config.keys() and config['max_active'] < len(actives)+1:
@@ -224,14 +221,14 @@ class Clocks(commands.Cog):
         bonuses = []
         
         for bonus in config['bonus_hours']:
-            _in = datetime.datetime.fromtimestamp(record['in_timestamp'], tz)
-            _out = datetime.datetime.fromtimestamp(record['out_timestamp'], tz)
+            _in = com.datetime_from_timestamp(record['in_timestamp'])
+            _out = com.datetime_from_timestamp(record['out_timestamp'])
             for day in range((_out.date() - _in.date()).days+1):
-                bonus_in = datetime.datetime.combine(_in.date()+datetime.timedelta(days=day), datetime.time.fromisoformat(bonus['start']), tz)
-                bonus_out = datetime.datetime.combine(_in.date()+datetime.timedelta(days=day), datetime.time.fromisoformat(bonus['end']), tz)
+                bonus_in = com.datetime_combine(_in.date()+datetime.timedelta(days=day), com.time_from_iso(bonus['start']))
+                bonus_out = com.datetime_combine(_in.date()+datetime.timedelta(days=day), com.time_from_iso(bonus['end']))
                 if _in <= bonus_out and _out >= bonus_in:
-                    now = datetime.datetime.now(tz).replace(microsecond = 0)
-                    print(f'{now.isoformat()} [{guild_id}] - Bonus hours found for {record["_DEBUG_user_name"]}', flush=True)
+                    
+                    print(f'{com.get_current_iso()} [{guild_id}] - Bonus hours found for {record["_DEBUG_user_name"]}', flush=True)
                     #we have an intersection
                     #duration calculation
                     duration = int(min(_out.timestamp()-_in.timestamp(), 
@@ -246,7 +243,7 @@ class Clocks(commands.Cog):
                     rec['out_timestamp'] = int(start.timestamp()+duration)
                     rec['_DEBUG_in'] = start.isoformat()
                     rec['_DEBUG_out'] = (start + datetime.timedelta(seconds=duration)).isoformat()
-                    rec['_DEBUG_delta'] = get_hours_from_secs(duration)
+                    rec['_DEBUG_delta'] = com.get_hours_from_secs(duration)
                     bonuses.append(rec)
         return bonuses
 
@@ -270,10 +267,10 @@ class Clocks(commands.Cog):
         res = await db.remove_active_record(ctx.guild.id, record)
         
         
-        _out = datetime.datetime.now(tz)
+        _out = com.get_current_datetime()
         record['_DEBUG_out'] = _out.isoformat()
         record['out_timestamp'] = int(_out.timestamp())
-        record['_DEBUG_delta'] = get_hours_from_secs(record['out_timestamp']-record['in_timestamp'])
+        record['_DEBUG_delta'] = com.get_hours_from_secs(record['out_timestamp']-record['in_timestamp'])
         
         res = await db.store_new_historical(ctx.guild.id, record)
         
@@ -281,7 +278,7 @@ class Clocks(commands.Cog):
             return {'status': False, 'record': record, 'row': None, 'content': f'Failed to store record to historical, contact admin\n{found}'}
         tot = await db.get_user_hours(ctx.guild.id, user_id)
         user = await ctx.guild.fetch_member(user_id)
-        return {'status': True,'record': record, 'row': res, 'content': f'{user.display_name} {scram("Successfully")} clocked out at <t:{record["out_timestamp"]}>, stored record #{res} for {record["_DEBUG_delta"]} hours. Your total is at {round(tot, 2)}'}
+        return {'status': True,'record': record, 'row': res, 'content': f'{user.display_name} {com.scram("Successfully")} clocked out at <t:{record["out_timestamp"]}>, stored record #{res} for {record["_DEBUG_delta"]} hours. Your total is at {round(tot, 2)}'}
     
 
     # ==============================================================================
@@ -310,7 +307,7 @@ class Clocks(commands.Cog):
         try:
             session = await db.get_session(ctx.guild.id)
             if not session:
-                now = datetime.datetime.now(tz)
+                now = com.get_current_datetime()
                 session = {
                            'session': sessionname,
                            'created_by': ctx.author.id,
@@ -344,12 +341,12 @@ class Clocks(commands.Cog):
         try:
             session = await db.get_session(ctx.guild.id)
             if session:
-                now = datetime.datetime.now(tz)
+                now = com.get_current_datetime()
                 session['ended_by'] = ctx.author.id
                 session['end_timestamp'] = int(now.timestamp())
                 session['_DEBUG_end'] = now.isoformat()
                 session['_DEBUG_ended_by'] = ctx.author.name
-                session['_DEBUG_delta'] = get_hours_from_secs(session['end_timestamp'] - 
+                session['_DEBUG_delta'] = com.get_hours_from_secs(session['end_timestamp'] - 
                                                               session['start_timestamp'])
                 
                 actives = await db.get_all_actives(ctx.guild.id)
@@ -424,8 +421,8 @@ class Clocks(commands.Cog):
             session_name = ''
             if session:
                 session_name = session['session']
-            now = datetime.datetime.now(tz)
-            hours = get_hours_from_secs(tot)
+            now = com.get_current_datetime()
+            hours = com.get_hours_from_secs(tot)
             doc = {
                 'user': ctx.author.id,
                 'character': f"URN_ZERO_OUT_EVENT -{hours}",
@@ -530,11 +527,11 @@ class Clocks(commands.Cog):
         title = f"_ _\n<@{_id}> Sessions:\n"
         content = ""
         for item in res:
-            _in = datetime.datetime.fromtimestamp(item['in_timestamp'], tz)
-            _out = datetime.datetime.fromtimestamp(item['out_timestamp'], tz)
+            _in = com.datetime_from_timestamp(item['in_timestamp'])
+            _out = com.datetime_from_timestamp(item['out_timestamp'])
             ses_hours = "Null"
             if _timetype == 'Hours':
-                ses_hours = get_hours_from_secs(item['out_timestamp'] - item['in_timestamp'])
+                ses_hours = com.get_hours_from_secs(item['out_timestamp'] - item['in_timestamp'])
             elif _timetype == 'Seconds':
                 ses_hours = item['out_timestamp'] - item['in_timestamp']
             catagory = "  "
@@ -546,7 +543,7 @@ class Clocks(commands.Cog):
                 catagory = " S"
             elif item['character'] == "QUAKE_DS_BONUS":
                 catagory = " Q"
-            content += f"\n{item['rowid']:5} {_in.date().isoformat()} - {item['session'][:50]:50}  {catagory} from {_in.time().isoformat('seconds')} {tz} to {_out.time().isoformat('seconds')} {tz} for {ses_hours} {_timetype.lower()}"
+            content += f"\n{item['rowid']:5} {_in.date().isoformat()} - {item['session'][:50]:50}  {catagory} from {_in.time()} {tz} to {_out.time()} {tz} for {ses_hours} {_timetype.lower()}"
             # Max message length is 2000, give 100 leway for title/user hours ending
             if len(content) >= 1850:
                 clip_idx = content.rfind('\n', 0, 1850)
@@ -619,10 +616,10 @@ class Clocks(commands.Cog):
             ctx.send_response(content=f'id must be a valid integer {err}', ephemeral=True)
             return
         secs = await db.get_user_seconds(ctx.guild.id, userid)
-        hours = get_hours_from_secs(secs)
-        datetime_kill = datetime.datetime.fromisoformat(date+"T"+time+":00-05:00")
+        hours = com.get_hours_from_secs(secs)
+        datetime_kill = com.datetime_from_iso(date+"T"+time+":00-05:00")
         rev_timestamp = datetime_kill.timestamp() - secs
-        rev_datetime = datetime.datetime.fromtimestamp(rev_timestamp, tz)
+        rev_datetime = com.datetime_from_timestamp(rev_timestamp)
         doc = {
                 'user': int(userid),
                 'character': f"URN_ZERO_OUT_EVENT -{hours}",
@@ -644,7 +641,7 @@ class Clocks(commands.Cog):
             return
         tot = await db.get_user_hours(ctx.guild.id, int(userid))
         
-        await ctx.send_response(content=f'{username} - <@{int(userid)}> {scram("Successfully")} URNed and stored record #{res} for {doc["_DEBUG_delta"]} hours. Total is at {tot}')
+        await ctx.send_response(content=f'{username} - <@{int(userid)}> {com.scram("Successfully")} URNed and stored record #{res} for {doc["_DEBUG_delta"]} hours. Total is at {tot}')
         
     @commands.slash_command(name='adminchangehistory', description='Admin command to change a historical record of a user')
     @is_admin()
@@ -668,7 +665,7 @@ class Clocks(commands.Cog):
             time = "0" + time
         time += "-05:00"
         arg_date = datetime.date.fromisoformat(_date)
-        _datetime = datetime.datetime.combine(arg_date, datetime.time.fromisoformat(time))
+        _datetime = com.datetime_combine(arg_date, datetime.time.fromisoformat(time))
         if _type == 'Clock in time':
             was['timestamp'] = rec['in_timestamp']
             was['_DEBUG'] = rec['_DEBUG_in']
@@ -684,7 +681,7 @@ class Clocks(commands.Cog):
             await ctx.send_response(content=f'Invalid option {_type}')
             return
             
-        rec['_DEBUG_delta'] = get_hours_from_secs(rec['out_timestamp']-rec['in_timestamp'])    
+        rec['_DEBUG_delta'] = com.get_hours_from_secs(rec['out_timestamp']-rec['in_timestamp'])    
         res = await db.delete_historical_record(ctx.guild.id, row)
         res = await db.store_new_historical(ctx.guild.id, rec)
         await ctx.send_response(content=f'Updated record #{row}, {_type} from {was["_DEBUG"]} to {_datetime.isoformat()} for user <@{rec["user"]}>', allowed_mentions=discord.AllowedMentions(users=False))
@@ -715,11 +712,11 @@ class Clocks(commands.Cog):
         intime += "-05:00"
         outtime += "-05:00"
         arg_date = datetime.date.fromisoformat(date)
-        in_datetime = datetime.datetime.combine(arg_date, datetime.time.fromisoformat(intime))
+        in_datetime = com.datetime_combine(arg_date, datetime.time.fromisoformat(intime))
         if dayafter == "True":
-            out_datetime = datetime.datetime.combine(arg_date+datetime.timedelta(days=1), datetime.time.fromisoformat(outtime))
+            out_datetime = com.datetime_combine(arg_date+datetime.timedelta(days=1), datetime.time.fromisoformat(outtime))
         else:
-            out_datetime = datetime.datetime.combine(arg_date, datetime.time.fromisoformat(outtime))
+            out_datetime = com.datetime_combine(arg_date, datetime.time.fromisoformat(outtime))
         in_timestamp = int(in_datetime.timestamp())
         out_timestamp = int(out_datetime.timestamp())
         doc = {
@@ -731,7 +728,7 @@ class Clocks(commands.Cog):
                 '_DEBUG_user_name': username,
                 '_DEBUG_in': in_datetime.isoformat(),
                 '_DEBUG_out': out_datetime.isoformat(),
-                '_DEBUG_delta': get_hours_from_secs(out_timestamp-in_timestamp),
+                '_DEBUG_delta': com.get_hours_from_secs(out_timestamp-in_timestamp),
             }
         try:
             res = await db.store_new_historical(ctx.guild.id, doc)
@@ -742,7 +739,7 @@ class Clocks(commands.Cog):
             await ctx.send_response(content=f'Something went wrong, return index 0 please contact an administator')
             return
         tot = await db.get_user_hours(ctx.guild.id, int(userid))
-        await ctx.send_response(content=f'{username} - <@{int(userid)}> {scram("Successfully")} clocked out and stored record #{res} for {doc["_DEBUG_delta"]} hours. Total is at {tot}')
+        await ctx.send_response(content=f'{username} - <@{int(userid)}> {com.scram("Successfully")} clocked out and stored record #{res} for {doc["_DEBUG_delta"]} hours. Total is at {tot}')
     
     # ==============================================================================
     # Data functions

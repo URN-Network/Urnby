@@ -1,14 +1,14 @@
 # Builtin
 import datetime
 import json
+import time
 
 # External
 import discord
 from discord.ext import commands
-from pytz import timezone
-tz = timezone('EST')
 
 # Internal
+import static.common as com
 from checks.IsAdmin import is_admin, NotAdmin
 from checks.IsCommandChannel import is_command_channel, NotCommandChannel
 from checks.IsMemberVisible import is_member_visible, NotMemberVisible
@@ -26,14 +26,12 @@ class Misc(commands.Cog):
         pass
     
     async def cog_before_invoke(self, ctx):
-        now = datetime.datetime.now(tz)
-        now = now.replace(microsecond = 0)
         guild_id = None
         if not ctx.guild:
             guild_id = 'DM'
         else:
             guild_id = ctx.guild.id
-        print(f'{now.isoformat()} [{guild_id}] - Command {ctx.command.qualified_name} by {ctx.author.name} - {ctx.author.id} - {ctx.selected_options[0]["value"]}', flush=True)
+        print(f'{com.get_current_iso()} [{guild_id}] - Command {ctx.command.qualified_name} by {ctx.author.name} - {ctx.author.id} - {ctx.selected_options[0]["value"]}', flush=True)
         #command = {'command_name': ctx.command.qualified_name, 'options': str(ctx.selected_options), 'datetime': now.isoformat(), 'user': ctx.author.id, 'user_name': ctx.author.name, 'channel_name': ctx.channel.name}
         #await self.store_command(guild_id, command)
         return
@@ -42,7 +40,6 @@ class Misc(commands.Cog):
     # Error Handlers
     # ==============================================================================
     async def cog_command_error(self, ctx: commands.Context, error: commands.CommandError):
-        now = datetime.datetime.now(tz).replace(microsecond = 0)
         guild_id = None
         channel_name = None
         if not ctx.guild:
@@ -51,7 +48,7 @@ class Misc(commands.Cog):
         else:
             guild_id = ctx.guild.id
             channel_name = ctx.channel.name
-        print(f'{now.isoformat()} [{guild_id}] - Error in command {ctx.command.qualified_name} by {ctx.author.name} - {ctx.author.id}', flush=True)
+        print(f'{com.get_current_iso()} [{guild_id}] - Error in command {ctx.command.qualified_name} by {ctx.author.name} - {ctx.author.id}', flush=True)
         _error = {
             'level': 'error', 
             'command_name': ctx.command.qualified_name, 
@@ -124,6 +121,7 @@ class Misc(commands.Cog):
         except ValueError as err:
             await ctx.send_response(content=f"Invalid input for value: {err}")
             return
+        
         guild_config['bonus_hours'].append({"start":_start, "end":_end, "pct": _pct})
         save_guild_config(str(ctx.guild.id), guild_config)
         await ctx.send_response(content=f"Config item set - bonus_hours = {guild_config['bonus_hours']}")
