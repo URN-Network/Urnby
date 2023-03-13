@@ -1,5 +1,10 @@
 import aiosqlite
+import datetime
 from static.common import get_hours_from_secs
+
+from pytz import timezone
+tz = timezone('EST')
+utc_tz = timezone('UTC')
 
 async def check_tables(tbls):
     l = []
@@ -129,6 +134,20 @@ async def get_all_actives(guild_id) -> list:
             res = [dict(row) for row in rows]
     return res
 
+async def get_active(guild_id, user_id):
+    res = {}
+    async with aiosqlite.connect('data/urnby.db') as db:
+        db.row_factory = aiosqlite.Row
+        query = f"SELECT rowid, * FROM active WHERE server = {guild_id} AND user = {user_id}"
+        async with db.execute(query) as cursor:
+            rows = await cursor.fetchall()
+            if len(rows) < 1:
+                return None
+            elif len(rows) > 1:
+                raise ValueError(f'Error, server {guild_id}, user {user_id} has more then one active session {len(rows)}')
+            res = dict(rows[0])
+    return res
+
 # Returns None on user was already in active
 async def store_active_record(guild_id, record):
     guild_actives = await get_all_actives(str(guild_id))
@@ -190,7 +209,17 @@ async def get_historical_user(guild_id, user_id):
             rows = await cursor.fetchall()
             res = [dict(row) for row in rows]
     return res
-    
+
+async def get_historical_user_by_session(guild_id, session, user_id):
+    res = []
+    async with aiosqlite.connect('data/urnby.db') as db:
+        db.row_factory = aiosqlite.Row
+        query = f"SELECT rowid, * FROM historical WHERE server = {guild_id} AND session = '{session}' AND user = {user_id}"
+        async with db.execute(query) as cursor:
+            rows = await cursor.fetchall()
+            res = [dict(row) for row in rows]
+    return res
+
 async def get_historical_record(guild_id, rowid):
     res = []
     async with aiosqlite.connect('data/urnby.db') as db:
@@ -344,3 +373,21 @@ async def get_users_hours(guild_id, users) -> list[dict]:
         tot = await get_user_hours(guild_id, user, guild_historical)
         res.append({'user': user, 'total':tot})
     return res
+
+async def get_user_current_session_hours(guild_id, user_id) -> float:
+    user_session_total = 0.0
+
+    # Account for active
+    active = await get_active(guild_id, user_id)
+    if active:
+        now = datetime.datetime.now(tz)
+        user_session_total += get_hours_from_secs(now.timestamp() - active['in_timestamp'])
+
+    # Account for historicals in this session
+    session = await get_session(guild_id)
+    if session:
+        user_session_historicals = await get_historical_user_by_session(guild_id, session['session'], user_id)
+        for item in user_session_historicals:
+            user_session_total += item['_DEBUG_delta']
+    
+    return user_session_total

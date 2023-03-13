@@ -19,7 +19,7 @@ from checks.IsMemberVisible import is_member_visible, NotMemberVisible
 from checks.IsMember import is_member, NotMember
 
 REFRESH_TYPE = 'seconds'
-REFRESH_TIME = 60
+REFRESH_TIME = 5
 
 class Dashboard(commands.Cog):
     
@@ -104,8 +104,8 @@ class Dashboard(commands.Cog):
                     member = await guild.fetch_member(int(item['user']))
                 except discord.errors.NotFound:
                     item['display_name'] = 'placeholder'
-                    continue
-                item['display_name'] = member.display_name
+                else:
+                    item['display_name'] = member.display_name
             
             actives = await db.get_all_actives(guild.id)
             
@@ -114,10 +114,9 @@ class Dashboard(commands.Cog):
                     member = await guild.fetch_member(int(item['user']))
                 except discord.errors.NotFound:
                     item['display_name'] = 'placeholder'
-                    item['delta'] = get_hours_from_secs(now.timestamp() - item['in_timestamp'])
-                    continue
-                member = await guild.fetch_member(int(item['user']))
-                item['display_name'] = member.display_name
+                else:
+                    item['display_name'] = member.display_name
+
                 item['delta'] = get_hours_from_secs(now.timestamp() - item['in_timestamp'])
             
             if not session_real:
@@ -143,10 +142,11 @@ class Dashboard(commands.Cog):
             contentlines.append(f"{'-'*49}-")
             contentlines.append(f" {session['session'][:27]:27} @ {timestr:13} EST |")
             contentlines.append(f"{'-'*49}|")
-            contentlines.append(f" {'Active Users':35}Hours at camp|") 
+            contentlines.append(f" {'Active Users':25}Current / Session Total|") 
             contentlines.append(f"{'-'*49}|")
             for item in actives:
-                contentlines.append(f" {item['display_name'][:29]:30} {item['delta']:17.2f}|")
+                tot = await db.get_user_current_session_hours(guild.id, int(item['user']))
+                contentlines.append(f" {item['display_name'][:29]:36} {item['delta']:2.2f} / {tot:2.2f}|")
             contentlines.append(f"{'-'*49}|")
             contentlines.append(f" {'Camp Queue':33}Hours available|")
             contentlines.append(f"{'-'*49}|")
