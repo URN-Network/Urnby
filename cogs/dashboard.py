@@ -13,13 +13,14 @@ utc_tz = timezone('UTC')
 
 # Internal
 import data.databaseapi as db
-from static.common import get_hours_from_secs, SECS_IN_MINUTE
+from static.common import get_hours_from_secs, SECS_IN_MINUTE, MINUTE_IN_HOUR
 from checks.IsCommandChannel import is_command_channel, NotCommandChannel
 from checks.IsMemberVisible import is_member_visible, NotMemberVisible
 from checks.IsMember import is_member, NotMember
 
 REFRESH_TYPE = 'seconds'
-REFRESH_TIME = 60
+REFRESH_TIME = 15
+CAMP_HOURS_TILL_DS = 18
 
 class Dashboard(commands.Cog):
     
@@ -27,6 +28,7 @@ class Dashboard(commands.Cog):
         self.bot = bot
         self.printer.start()
         self.delay = {}
+        self.open_transitioned = {}
         
         print('Initilization on dashboard complete')
         
@@ -41,12 +43,7 @@ class Dashboard(commands.Cog):
             config = get_config(guild.id)
             if not config or not config.get('dashboard_channel'):
                 continue
-            channel = await guild.fetch_channel(config['dashboard_channel'])
-            def chk(msg):
-                if msg.author.id == self.bot.user.id:
-                    return True
-                return False
-            await channel.purge(check=chk)
+            await self._purge_dashboard(guild)
     
         
     def cog_unload(self):
@@ -72,8 +69,18 @@ class Dashboard(commands.Cog):
         session = await db.get_session(ctx.guild.id)
         if self.delay.get(ctx.guild.id) and not session:
             self.delay[ctx.guild.id] = False
+        await self._purge_dashboard(ctx.guild)
         await ctx.send_response(f"Enabling refresh for the next dashboard update")
-        
+    
+    async def _purge_dashboard(self, guild):
+        config = get_config(guild.id)
+        channel = await guild.fetch_channel(config['dashboard_channel'])
+        def chk(msg):
+            if msg.author.id == self.bot.user.id:
+                return True
+            return False
+        await channel.purge(check=chk)
+    
     @tasks.loop(**{REFRESH_TYPE:REFRESH_TIME})
     async def printer(self):
         for guild in self.bot.guilds:
@@ -81,19 +88,35 @@ class Dashboard(commands.Cog):
             if not config or not config.get('dashboard_channel'):
                 continue
             session_real = await db.get_session(guild.id)
+            historical_recs_from_session = []
+            if session_real:
+                historical_recs_from_session = await db.get_historical_session(guild.id, session_real['session'])
+            now = datetime.datetime.now(tz)
+            tod_dict = await db.get_tod(guild.id, mob_name="Drusella Sathir")
+            mins_till_ds_str = "Unknown"
+            if tod_dict:
+                tod_datetime = datetime.datetime.fromtimestamp(tod_dict['tod_timestamp'], tz) + datetime.timedelta(days=1)
+                mins_till_ds = int((tod_datetime - now).total_seconds()/SECS_IN_MINUTE)
+                if mins_till_ds < 0:
+                    mins_till_ds_str = "Unknown"
+                else:
+                    mins_till_ds_str = f'{mins_till_ds:4}mins'
+            _open = ""
+            if mins_till_ds >= 0 and mins_till_ds <= MINUTE_IN_HOUR * CAMP_HOURS_TILL_DS:
+                _open = "<OPEN>"
+                # If we are in delayed mode, and we havent refreshed with the new transition, refresh automatically
+                if self.delay.get(guild.id) and not self.open_transitioned.get(guild.id):
+                    self.open_transitioned[guild.id] = True
+                    self.delay[guild.id] = False
+                    await self._purge_dashboard(guild)
             if self.delay.get(guild.id) and session_real:
                 self.delay[guild.id] = False
-                channel = await guild.fetch_channel(config['dashboard_channel'])
-                def chk(msg):
-                    if msg.author.id == self.bot.user.id:
-                        return True
-                    return False
-                await channel.purge(check=chk)
+                await self._purge_dashboard(guild)
                     
             elif self.delay.get(guild.id) and not session_real:
                 continue
             
-            now = datetime.datetime.now(tz)
+            
             users = await db.get_unique_users(guild.id)
             
             res = await db.get_users_hours(guild.id, users)
@@ -115,10 +138,15 @@ class Dashboard(commands.Cog):
                 except discord.errors.NotFound:
                     item['display_name'] = 'placeholder'
                     item['delta'] = get_hours_from_secs(now.timestamp() - item['in_timestamp'])
-                    continue
+                    item['ses_delta'] = item['delta']
                 member = await guild.fetch_member(int(item['user']))
                 item['display_name'] = member.display_name
                 item['delta'] = get_hours_from_secs(now.timestamp() - item['in_timestamp'])
+                mem_historical = [_ for _ in historical_recs_from_session if _['user'] == item['user']]
+                item['ses_delta'] = item['delta']
+                for _item in mem_historical:
+                   item['ses_delta'] += get_hours_from_secs(_item['out_timestamp'] - _item['in_timestamp'])
+                item['ses_delta'] = round(item['ses_delta'],2)
             
             if not session_real:
                 session = {'session': "None"}
@@ -127,31 +155,23 @@ class Dashboard(commands.Cog):
                 session = session_real
                 timestr = datetime.datetime.fromtimestamp(session['start_timestamp'], tz).strftime("%b%d %I:%M%p")
             
-            tod_dict = await db.get_tod(guild.id, mob_name="Drusella Sathir")
-            mins_till_ds_str = "Unknown"
-            if tod_dict:
-                tod_datetime = datetime.datetime.fromtimestamp(tod_dict['tod_timestamp'], tz) + datetime.timedelta(days=1)
-                mins_till_ds = int((tod_datetime - now).total_seconds()/SECS_IN_MINUTE)
-                if mins_till_ds < 0:
-                    mins_till_ds_str = "Unknown"
-                else:
-                    mins_till_ds_str = f'{mins_till_ds:4}mins'
+            
             #TODO get camp queue
             camp_queue = []
             contentlines = ["```\n"]
-            contentlines.append(f" {'Active Session':33}DS in: {mins_till_ds_str:8}|")
+            contentlines.append(f" {'Active Session':20}{_open:13}DS in: {mins_till_ds_str:8}|")
             contentlines.append(f"{'-'*49}-")
             contentlines.append(f" {session['session'][:27]:27} @ {timestr:13} EST |")
             contentlines.append(f"{'-'*49}|")
-            contentlines.append(f" {'Active Users':35}Hours at camp|") 
+            contentlines.append(f" {'Active Users':19}Hours at camp / Session Total|") 
             contentlines.append(f"{'-'*49}|")
             for item in actives:
-                contentlines.append(f" {item['display_name'][:29]:30} {item['delta']:17.2f}|")
+                contentlines.append(f" {item['display_name'][:29]:30} {item['delta']:9.2f} / {item['ses_delta']:5.2}|")
             contentlines.append(f"{'-'*49}|")
             contentlines.append(f" {'Camp Queue':33}Hours available|")
             contentlines.append(f"{'-'*49}|")
             for item in camp_queue:
-                contentlines.append(f" {item['display_name'][:29]:30} {item['delta']:17.2f}|")
+                contentlines.append(f" {item['display_name'][:29]:30} {item['delta']:9.2f} / {item['ses_delta']:5.2}|")
             lines = 2
             ex_lines = 7
             cont_lines = len(actives) + len(camp_queue)
@@ -172,10 +192,15 @@ class Dashboard(commands.Cog):
                 
             channel = await guild.fetch_channel(config['dashboard_channel'])
             if not session_real:
-                await channel.send(content=content+"Paused till session start", silent=True)
+                content += "Paused till session start. "
+                if self.open_transitioned.get(guild.id):
+                    content += "Camp is open!"
+                    #self.open_transitioned[guild.id]
+                await channel.send(content=content, silent=True)
                 self.delay[guild.id] = True
             else:
                 await channel.send(content=content, delete_after=REFRESH_TIME+.5, silent=True)
+                self.open_transitioned[guild.id] = False
                 self.delay[guild.id] = False
             
 

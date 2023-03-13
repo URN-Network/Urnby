@@ -11,6 +11,8 @@ from pathlib import Path
 
 # Internal
 
+from checks.IsInDev import is_in_dev, InDevelopment
+
 CLASSES = json.load(open('static/classes.json', 'r', encoding='utf-8'))
 
 class CampQueue(commands.Cog):
@@ -20,6 +22,7 @@ class CampQueue(commands.Cog):
         print('Initilization on campqueue complete')
 
     @commands.Cog.listener()
+    @is_in_dev()
     async def on_connect(self):
         print(f'campqueue connected to discord')
         data_dirs = ['data/campqueue.json']
@@ -42,6 +45,7 @@ class CampQueue(commands.Cog):
             json.dump(file, open(_dir, 'w', encoding='utf-8'), indent=1)
 
     @commands.slash_command(name='campqueue')
+    @is_in_dev()
     async def _campqueue(self, ctx, 
                          character: discord.Option(name='character', input_type=str, required=True),
                          _class: discord.Option(name='class', choices=CLASSES, required=True),
@@ -56,10 +60,12 @@ class CampQueue(commands.Cog):
         pass
     
     @commands.slash_command(name='campdequeue')
+    @is_in_dev()
     async def _campdequeue(self, ctx):
         pass
         
     @commands.slash_command(name='campeditqueue')
+    @is_in_dev()
     async def _campeditqueue(self, ctx):
         pass
 

@@ -14,7 +14,7 @@ from aiosqlite import OperationalError
 
 # Internal
 import data.databaseapi as db
-from static.common import get_hours_from_secs
+from static.common import get_hours_from_secs, scram
 from views.ClearOutView import ClearOutView
 from checks.IsAdmin import is_admin, NotAdmin
 from checks.IsCommandChannel import is_command_channel, NotCommandChannel
@@ -142,7 +142,7 @@ class Clocks(commands.Cog):
     @is_member()
     async def _get_active(self, ctx, public: discord.Option(bool, name='public', default=False)):
         actives = await db.get_all_actives(ctx.guild.id)
-        now = int(datetime.datetime.now().timestamp())
+        now = int(datetime.datetime.now(tz).timestamp())
         if len(actives) == 0:
             await ctx.send_response(content=f"There are no active users at this time", ephemeral=not public)
             return
@@ -189,7 +189,7 @@ class Clocks(commands.Cog):
             }
         
         await db.store_active_record(ctx.guild.id, doc)
-        await ctx.send_response(content=f'{ctx.author.display_name} Successfuly clocked in at <t:{doc["in_timestamp"]}:f>')
+        await ctx.send_response(content=f'{ctx.author.display_name} {scram("Successfully")} clocked in at <t:{doc["in_timestamp"]}:f>')
         
         config = self.get_config(ctx.guild.id)
         if 'max_active' in config.keys() and config['max_active'] < len(actives)+1:
@@ -281,7 +281,7 @@ class Clocks(commands.Cog):
             return {'status': False, 'record': record, 'row': None, 'content': f'Failed to store record to historical, contact admin\n{found}'}
         tot = await db.get_user_hours(ctx.guild.id, user_id)
         user = await ctx.guild.fetch_member(user_id)
-        return {'status': True,'record': record, 'row': res, 'content': f'{user.display_name} Successfuly clocked out at <t:{record["out_timestamp"]}>, stored record #{res} for {record["_DEBUG_delta"]} hours. Your total is at {round(tot, 2)}'}
+        return {'status': True,'record': record, 'row': res, 'content': f'{user.display_name} {scram("Successfully")} clocked out at <t:{record["out_timestamp"]}>, stored record #{res} for {record["_DEBUG_delta"]} hours. Your total is at {round(tot, 2)}'}
     
 
     # ==============================================================================
@@ -593,7 +593,7 @@ class Clocks(commands.Cog):
             return
         
         secs = await db.get_user_seconds(ctx.guild.id, _id)
-        await ctx.send_response(content=f'{_id} has {secs}')
+        await ctx.send_response(content=f'<@{_id}> has {secs}', ephemeral=True)
     
     # ==============================================================================
     # Admin functions
@@ -643,7 +643,8 @@ class Clocks(commands.Cog):
             await ctx.send_response(content=f'Something went wrong, return index 0 please contact an administator')
             return
         tot = await db.get_user_hours(ctx.guild.id, int(userid))
-        await ctx.send_response(content=f'{username} - <@{int(userid)}> Successfuly URNed and stored record #{res} for {doc["_DEBUG_delta"]} hours. Total is at {tot}')
+        
+        await ctx.send_response(content=f'{username} - <@{int(userid)}> {scram("Successfully")} URNed and stored record #{res} for {doc["_DEBUG_delta"]} hours. Total is at {tot}')
         
     @commands.slash_command(name='adminchangehistory', description='Admin command to change a historical record of a user')
     @is_admin()
@@ -703,7 +704,7 @@ class Clocks(commands.Cog):
                             character: discord.Option(str, name="character", default=''),
                             dayafter: discord.Option(str, name="dayafter", choices=['True', 'False'], description="Did clockout occur the day after in?", default='False')):
         try:
-            _id = int(_id)
+            userid = int(userid)
         except ValueError as err:
             ctx.send_response(content=f'id must be a valid integer {err}', ephemeral=True)
             return
@@ -741,7 +742,7 @@ class Clocks(commands.Cog):
             await ctx.send_response(content=f'Something went wrong, return index 0 please contact an administator')
             return
         tot = await db.get_user_hours(ctx.guild.id, int(userid))
-        await ctx.send_response(content=f'{username} - <@{int(userid)}> Successfuly clocked out and stored record #{res} for {doc["_DEBUG_delta"]} hours. Total is at {tot}')
+        await ctx.send_response(content=f'{username} - <@{int(userid)}> {scram("Successfully")} clocked out and stored record #{res} for {doc["_DEBUG_delta"]} hours. Total is at {tot}')
     
     # ==============================================================================
     # Data functions

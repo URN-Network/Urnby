@@ -160,7 +160,17 @@ async def remove_active_record(guild_id, record):
             lastrow = cursor.lastrowid
         await db.commit()
     return lastrow
-    
+
+async def get_historical_session(guild_id, session_name):
+    res = []
+    async with aiosqlite.connect('data/urnby.db') as db:
+        db.row_factory = aiosqlite.Row
+        query = f"""SELECT rowid, * FROM historical WHERE server = {guild_id} AND session = '{session_name}'"""
+        async with db.execute(query) as cursor:
+            rows = await cursor.fetchall()
+            res = [dict(row) for row in rows]
+    return res
+
 async def get_historical(guild_id):
     res = []
     async with aiosqlite.connect('data/urnby.db') as db:
