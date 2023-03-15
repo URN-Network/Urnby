@@ -114,31 +114,19 @@ class Dashboard(commands.Cog):
                 continue
             
             
-            users = await db.get_unique_users(guild.id)
-            
-            res = await db.get_users_hours(guild.id, users)
-            
-            sorted_res = list(sorted(res, key= lambda user: user['total'], reverse=True))
-            for item in sorted_res:
-                if int(item['user']) not in [_.id for _ in guild.members]:
-                    item['display_name'] = 'placeholder'
-                    continue
-                else:
-                    item['display_name'] = member.display_name
-            
             actives = await db.get_all_actives(guild.id)
             
             for item in actives:
-                if int(item['user']) not in [_.id for _ in guild.members]:
-                    item['display_name'] = 'placeholder'
-                    item['delta'] = com.get_hours_from_secs(now.timestamp() - item['in_timestamp'])
-                    mem_historical = [_ for _ in historical_recs_from_session if _['user'] == item['user']]
-                    item['ses_delta'] = item['delta']
-                else:
+                item['display_name'] = 'placeholder'
+                item['delta'] = com.get_hours_from_secs(now.timestamp() - item['in_timestamp'])
+                mem_historical = [_ for _ in historical_recs_from_session if _['user'] == item['user']]
+                item['ses_delta'] = item['delta']
+                try:
+                    member = await guild.fetch_member(int(item['user']))
+                except discord.errors.NotFound:
+                    member = None
+                if member:
                     item['display_name'] = member.display_name
-                    item['delta'] = com.get_hours_from_secs(now.timestamp() - item['in_timestamp'])
-                    mem_historical = [_ for _ in historical_recs_from_session if _['user'] == item['user']]
-                    item['ses_delta'] = item['delta']
                 for _item in mem_historical:
                    item['ses_delta'] += com.get_hours_from_secs(_item['out_timestamp'] - _item['in_timestamp'])
                 item['ses_delta'] = round(item['ses_delta'],2)
@@ -150,9 +138,29 @@ class Dashboard(commands.Cog):
                 session = session_real
                 timestr = com.datetime_from_timestamp(session['start_timestamp']).strftime("%b%d %I:%M%p")
             
-            
             #TODO get camp queue
             camp_queue = []
+            
+            # NOTE! Actives and Camp queue must be completed before this step as we are limiting based on the number of the aforementioned 
+            lines = 2
+            ex_lines = 7
+            cont_lines = len(actives) + len(camp_queue)
+            users = await db.get_unique_users(guild.id)
+            
+            res = await db.get_users_hours(guild.id, users, limit = ex_lines+cont_lines)
+            
+            for item in res:
+                item['display_name'] = 'placeholder'
+                if guild.get_member(int(item['user'])):
+                    item['display_name'] = next((x.display_name for x in guild.members if x.id == int(item['user'])), None)
+                else:
+                    try:
+                        member = await guild.fetch_member(int(item['user']))
+                    except discord.errors.NotFound:
+                        continue
+                    item['display_name'] = member.display_name
+            
+            
             contentlines = ["```\n"]
             contentlines.append(f" {'Active Session':20}{_open:13}DS in: {mins_till_ds_str:8}|")
             contentlines.append(f"{'-'*49}-")
@@ -161,24 +169,22 @@ class Dashboard(commands.Cog):
             contentlines.append(f" {'Active Users':19}Hours at camp / Session Total|") 
             contentlines.append(f"{'-'*49}|")
             for item in actives:
-                contentlines.append(f" {item['display_name'][:29]:30} {item['delta']:9.2f} / {item['ses_delta']:5.2}|")
+                contentlines.append(f" {item['display_name'][:29]:30} {item['delta']:>9.2f} / {item['ses_delta']:>5.2}|")
             contentlines.append(f"{'-'*49}|")
             contentlines.append(f" {'Camp Queue':33}Hours available|")
             contentlines.append(f"{'-'*49}|")
             for item in camp_queue:
-                contentlines.append(f" {item['display_name'][:29]:30} {item['delta']:9.2f} / {item['ses_delta']:5.2}|")
-            lines = 2
-            ex_lines = 7
-            cont_lines = len(actives) + len(camp_queue)
+                contentlines.append(f" {item['display_name'][:29]:30} {item['delta']:>9.2f} / {item['ses_delta']:>5.2}|")
+            
             
             #Appending 2nd column
             contentlines[1] += f" Top {ex_lines+cont_lines} in Hours\n"
             contentlines[2] += f"{'-'*50}\n"
             for idx in range(ex_lines+cont_lines):
-                if idx >= len(sorted_res):
+                if idx >= len(res):
                     contentlines[idx+3] += f"\n"
                     continue
-                contentlines[idx+3] += f" {sorted_res[idx]['display_name'][:43]:43} {sorted_res[idx]['total']:.2f}\n"
+                contentlines[idx+3] += f" {res[idx]['display_name'][:42]:42} {res[idx]['total']:>6.2f}\n"
             
             contentlines.append("```")
             content = ""

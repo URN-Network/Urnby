@@ -339,18 +339,22 @@ async def get_user_seconds(guild_id, user, guild_historical=None):
         out_tot += item['out_timestamp']
     return out_tot - in_tot
 
-async def get_user_hours(guild_id, user, guild_historical=None) -> float:
+async def get_user_hours(guild_id, user, guild_historical=None, limit=None) -> float:
     secs = await get_user_seconds(guild_id, user, guild_historical)
+    
     return get_hours_from_secs(secs)
 
 # Wraps get_users_hours but only needs one grab from historical json
-async def get_users_hours(guild_id, users) -> list[dict]:
+async def get_users_hours(guild_id, users, limit=None) -> list[dict]:
     guild_historical = await get_historical(guild_id)
     res = []
     if not guild_historical:
         return res
     
     for user in users:
-        tot = await get_user_hours(guild_id, user, guild_historical)
+        tot = await get_user_hours(guild_id, user, guild_historical, limit=limit)
         res.append({'user': user, 'total':tot})
-    return res
+    sorted_res = list(sorted(res, key= lambda user: user['total'], reverse=True))
+    if limit:
+        sorted_res = sorted_res[:limit]
+    return sorted_res
