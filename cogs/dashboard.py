@@ -169,12 +169,12 @@ class Dashboard(commands.Cog):
             contentlines.append(f" {'Active Users':19}Hours at camp / Session Total|") 
             contentlines.append(f"{'-'*49}|")
             for item in actives:
-                contentlines.append(f" {item['display_name'][:29]:30} {item['delta']:>9.2f} / {item['ses_delta']:>5.3}|")
+                contentlines.append(f" {item['display_name'][:29]:30} {item['delta']:>9.2f} / {item['ses_delta']:>5.2f}|")
             contentlines.append(f"{'-'*49}|")
             contentlines.append(f" {'Camp Queue':33}Hours available|")
             contentlines.append(f"{'-'*49}|")
             for item in camp_queue:
-                contentlines.append(f" {item['display_name'][:29]:30} {item['delta']:>9.2f} / {item['ses_delta']:>5.3}|")
+                contentlines.append(f" {item['display_name'][:29]:30} {item['delta']:>9.2f} / {item['ses_delta']:>5.2f}|")
             
             
             #Appending 2nd column
