@@ -129,7 +129,7 @@ class Dashboard(commands.Cog):
                     item['display_name'] = member.display_name
                 for _item in mem_historical:
                    item['ses_delta'] += com.get_hours_from_secs(_item['out_timestamp'] - _item['in_timestamp'])
-                item['ses_delta'] = round(item['ses_delta'],2)
+                item['ses_delta'] = round(item['ses_delta'], 2)
             
             if not session_real:
                 session = {'session': "None"}
@@ -169,12 +169,12 @@ class Dashboard(commands.Cog):
             contentlines.append(f" {'Active Users':19}Hours at camp / Session Total|") 
             contentlines.append(f"{'-'*49}|")
             for item in actives:
-                contentlines.append(f" {item['display_name'][:29]:30} {item['delta']:>9.2f} / {item['ses_delta']:>5.2}|")
+                contentlines.append(f" {item['display_name'][:29]:30} {item['delta']:>9.2f} / {item['ses_delta']:>5.3}|")
             contentlines.append(f"{'-'*49}|")
             contentlines.append(f" {'Camp Queue':33}Hours available|")
             contentlines.append(f"{'-'*49}|")
             for item in camp_queue:
-                contentlines.append(f" {item['display_name'][:29]:30} {item['delta']:>9.2f} / {item['ses_delta']:>5.2}|")
+                contentlines.append(f" {item['display_name'][:29]:30} {item['delta']:>9.2f} / {item['ses_delta']:>5.3}|")
             
             
             #Appending 2nd column
