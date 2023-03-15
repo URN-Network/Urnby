@@ -3,6 +3,7 @@ import datetime
 import json
 import asyncio
 import time
+import os
 
 # External
 import discord
@@ -18,6 +19,10 @@ from checks.IsMember import is_member, NotMember
 REFRESH_TYPE = 'seconds'
 REFRESH_TIME = 60
 CAMP_HOURS_TILL_DS = 18
+
+DEBUG = os.getenv('DEBUG')
+if DEBUG:
+    REFRESH_TIME = 15
 
 class Dashboard(commands.Cog):
     
@@ -70,13 +75,17 @@ class Dashboard(commands.Cog):
         await ctx.send_response(f"Enabling refresh for the next dashboard update")
     
     async def _purge_dashboard(self, guild):
-        config = get_config(guild.id)
-        channel = await guild.fetch_channel(config['dashboard_channel'])
         def chk(msg):
             if msg.author.id == self.bot.user.id:
                 return True
             return False
-        await channel.purge(check=chk)
+        config = get_config(guild.id)
+        if config.get('dashboard_channel'):
+            channel = await guild.fetch_channel(config['dashboard_channel'])
+            await channel.purge(check=chk)
+        if config.get('mobile_dash_channel'):
+            mobile_channel = await guild.fetch_channel(config['mobile_dash_channel'])
+            await mobile_channel.purge(check=chk)
     
     @tasks.loop(**{REFRESH_TYPE:REFRESH_TIME})
     async def printer(self):
@@ -161,46 +170,76 @@ class Dashboard(commands.Cog):
                     item['display_name'] = member.display_name
             
             
-            contentlines = ["```\n"]
-            contentlines.append(f" {'Active Session':20}{_open:13}DS in: {mins_till_ds_str:8}|")
-            contentlines.append(f"{'-'*49}-")
-            contentlines.append(f" {session['session'][:27]:27} @ {timestr:13} EST |")
-            contentlines.append(f"{'-'*49}|")
-            contentlines.append(f" {'Active Users':19}Hours at camp / Session Total|") 
-            contentlines.append(f"{'-'*49}|")
+            col1 = []
+            seperator = f"{'-'*45}"
+            sp = ' '
+            # 1st column 50 spaces 
+            col1.append(f"{' Active Session':15}{_open:^14}{'DS in: ':7}{mins_till_ds_str:8}{' ':1}")
+            col1.append(seperator)
+            col1.append(f"{' ' + session['session'][:23]:25}{'@ ':2}{timestr:13}{' EST ':5}")
+            col1.append(seperator)
+            col1.append(f"{' Active Users':<20}{'Current / Total':>24}{' ':1}") 
+            col1.append(seperator)
             for item in actives:
-                contentlines.append(f" {item['display_name'][:29]:30} {item['delta']:>9.2f} / {item['ses_delta']:>5.2f}|")
-            contentlines.append(f"{'-'*49}|")
-            contentlines.append(f" {'Camp Queue':33}Hours available|")
-            contentlines.append(f"{'-'*49}|")
+                col1.append(f"{' ' + item['display_name'][:23]:25}{item['delta']:>9.2f}{' / ':3}{item['ses_delta']:>7.2f}{' ':1}")
+            col1.append(seperator)
+            col1.append(f"{' Camp Queue':11}{'Hours available':>33}{' ':1}")
+            col1.append(seperator)
             for item in camp_queue:
-                contentlines.append(f" {item['display_name'][:29]:30} {item['delta']:>9.2f} / {item['ses_delta']:>5.2f}|")
+                col1.append(f"{space+item['display_name'][:23]:25}{item['delta']:>9.2f}{' / ':3}{item['ses_delta']:>7.2f}{' ':1}")
             
             
             #Appending 2nd column
-            contentlines[1] += f" Top {ex_lines+cont_lines} in Hours\n"
-            contentlines[2] += f"{'-'*50}\n"
+            col2 = []
+            col2.append(f" Top {ex_lines+cont_lines} in Hours")
+            col2.append(seperator)
             for idx in range(ex_lines+cont_lines):
                 if idx >= len(res):
-                    contentlines[idx+3] += f"\n"
+                    col2.append(f"")
                     continue
-                contentlines[idx+3] += f" {res[idx]['display_name'][:42]:42} {res[idx]['total']:>6.2f}\n"
+                col2.append(f"{' ' + res[idx]['display_name'][:35]:36}{' ':1}{res[idx]['total']:>7.2f}{' ':1}")
             
-            contentlines.append("```")
-            content = ""
-            for item in contentlines:
-                content += item
-                
+            desktop_dash = "```\n"
+            for idx, _ in enumerate(col1):
+                div = '|'
+                if idx == 1:
+                    div = '-'
+                desktop_dash += col1[idx] + div + col2[idx] + '\n'
+            desktop_dash += "```\n"
+            
+            mobile_dash = "```\n"
+            for idx in range(len(col1)):
+                mobile_dash += col1[idx] + '\n'
+            mobile_dash += '\n' + seperator + '\n'
+            for idx in range(len(col2)):
+                mobile_dash += col2[idx] + '\n'
+            mobile_dash += "```\n"
+            
             channel = await guild.fetch_channel(config['dashboard_channel'])
             if not session_real:
-                content += "Paused till session start. "
+                desktop_dash += "Paused till session start. "
+                mobile_dash += "Paused till session start. "
+                
                 if self.open_transitioned.get(guild.id):
-                    content += "Camp is open!"
-                    #self.open_transitioned[guild.id]
-                await channel.send(content=content, silent=True)
+                    desktop_dash += "Camp is open!"
+                    mobile_dash += "Camp is open!"
+                    
+                await channel.send(content=desktop_dash, silent=True)
+                
+                if config.get('mobile_dash_channel'):
+                    mobile_channel = await guild.fetch_channel(config['mobile_dash_channel'])
+                    if mobile_channel:
+                        await mobile_channel.send(content=mobile_dash, silent=True)
+                
                 self.delay[guild.id] = True
             else:
-                await channel.send(content=content, delete_after=REFRESH_TIME+.5, silent=True)
+                await channel.send(content=desktop_dash, delete_after=REFRESH_TIME+.5, silent=True)
+                
+                if config.get('mobile_dash_channel'):
+                    mobile_channel = await guild.fetch_channel(config['mobile_dash_channel'])
+                    if mobile_channel:
+                        await mobile_channel.send(content=mobile_dash, silent=True)
+                
                 self.open_transitioned[guild.id] = False
                 self.delay[guild.id] = False
             

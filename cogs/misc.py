@@ -26,14 +26,13 @@ class Misc(commands.Cog):
         pass
     
     async def cog_before_invoke(self, ctx):
-        guild_id = None
+        guild_id = 'DM'
         if not ctx.guild:
-            guild_id = 'DM'
-        else:
             guild_id = ctx.guild.id
-        print(f'{com.get_current_iso()} [{guild_id}] - Command {ctx.command.qualified_name} by {ctx.author.name} - {ctx.author.id} - {ctx.selected_options[0]["value"]}', flush=True)
-        #command = {'command_name': ctx.command.qualified_name, 'options': str(ctx.selected_options), 'datetime': now.isoformat(), 'user': ctx.author.id, 'user_name': ctx.author.name, 'channel_name': ctx.channel.name}
-        #await self.store_command(guild_id, command)
+        
+        print(f'{com.get_current_iso()} [{guild_id}] - Command {ctx.command.qualified_name} by {ctx.author.name} - {ctx.author.id} - {ctx.selected_options}', flush=True)
+        command = {'command_name': ctx.command.qualified_name, 'options': str(ctx.selected_options), 'datetime': now.isoformat(), 'user': ctx.author.id, 'user_name': ctx.author.name, 'channel_name': ctx.channel.name}
+        await db.store_command(guild_id, command)
         return
     
     # ==============================================================================
@@ -78,6 +77,13 @@ class Misc(commands.Cog):
             print(type(error), flush=True)
             raise error
         return
+        
+    
+    @commands.user_command(name="Get User ID")
+    async def _get_user_id(self, ctx, member: discord.Member):
+        await ctx.send_response(f'<@{member.id}> is ID - {member.id}', ephemeral=True, allowed_mentions=discord.AllowedMentions(users= False)) 
+        return
+                
         
     @commands.slash_command(name="ownerdelmsg", description="Owner command, must be ran in channel where message is to be deleted")
     @commands.is_owner()
