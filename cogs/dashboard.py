@@ -16,7 +16,7 @@ from checks.IsMemberVisible import is_member_visible, NotMemberVisible
 from checks.IsMember import is_member, NotMember
 
 REFRESH_TYPE = 'seconds'
-REFRESH_TIME = 15
+REFRESH_TIME = 60
 CAMP_HOURS_TILL_DS = 18
 
 class Dashboard(commands.Cog):
