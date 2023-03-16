@@ -244,7 +244,7 @@ class Dashboard(commands.Cog):
                 if config.get('mobile_dash_channel'):
                     mobile_channel = await guild.fetch_channel(config['mobile_dash_channel'])
                     if mobile_channel and mobile_channel.permissions_for(guild.get_member(self.bot.user.id)).send_messages:
-                        await mobile_channel.send(content=mobile_dash, silent=True)
+                        await mobile_channel.send(content=mobile_dash, delete_after=REFRESH_TIME+.5, silent=True)
                     else:
                         print(f'mobile channel {mobile_channel} could not send maybe permissions?')
                 
