@@ -45,7 +45,7 @@ class Tod(commands.Cog):
             offset = -1
             
         if not tod_datetime:    
-            tod_datetime = datetime_combine(datetime.date.today()+datetime.timedelta(days=offset), time_from_iso(tod))
+            tod_datetime = com.datetime_combine(datetime.date.today()+datetime.timedelta(days=offset), time_from_iso(tod))
             
         rec = {
                "mob": mobname, 
