@@ -98,7 +98,7 @@ class Misc(commands.Cog):
     @commands.slash_command(name='configadd')
     @is_admin()
     async def _add_config(self, ctx, 
-                          _key: discord.Option(str, name="key", choices=["member_roles", "admin_roles", "command_channels", "max_active", "dashboard_channel"], required=True),
+                          _key: discord.Option(str, name="key", choices=["member_roles", "admin_roles", "command_channels", "max_active", "dashboard_channel", "channel_stats"], required=True),
                           _value: discord.Option(str, name="value", required=True)):
         
         guild_config = get_guild_config(str(ctx.guild.id))

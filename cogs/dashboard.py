@@ -28,10 +28,12 @@ class Dashboard(commands.Cog):
     
     def __init__(self, bot):
         self.bot = bot
-        self.printer.start()
         self.delay = {}
         self.open_transitioned = {}
-        
+        self.cache_datetime = None
+        self.config_cache = {}
+        self.refresh_cache_config()
+        self.printer.start()
         print('Initilization on dashboard complete')
         
             
@@ -42,7 +44,7 @@ class Dashboard(commands.Cog):
             print(f"Warning, Dashboard reports missing the following tables in db: {missing_tables}")
             
         for guild in self.bot.guilds:
-            config = get_config(guild.id)
+            config = self.get_config(guild.id)
             if not config or not config.get('dashboard_channel'):
                 continue
             await self._purge_dashboard(guild)
@@ -79,7 +81,7 @@ class Dashboard(commands.Cog):
             if msg.author.id == self.bot.user.id:
                 return True
             return False
-        config = get_config(guild.id)
+        config = self.get_config(guild.id)
         if config.get('dashboard_channel'):
             channel = await guild.fetch_channel(config['dashboard_channel'])
             await channel.purge(check=chk)
@@ -90,7 +92,8 @@ class Dashboard(commands.Cog):
     @tasks.loop(**{REFRESH_TYPE:REFRESH_TIME})
     async def printer(self):
         for guild in self.bot.guilds:
-            config = get_config(guild.id)
+            
+            config = self.get_config(guild.id)
             if not config or not config.get('dashboard_channel'):
                 continue
             session_real = await db.get_session(guild.id)
@@ -242,11 +245,22 @@ class Dashboard(commands.Cog):
                 
                 self.open_transitioned[guild.id] = False
                 self.delay[guild.id] = False
-            
-
-def get_config(guild_id):
-    return json.load(open('data/config.json', 'r', encoding='utf-8')).get(str(guild_id))
+    
+    def get_config(self, guild_id):
+        now = com.get_current_datetime()
+        if self.cache_datetime and (now - self.cache_datetime).total_seconds() > 5 * com.SECS_IN_MINUTE:
+            self.refresh_cache_config()
+        if self.config_cache:
+            return self.config_cache.get(str(guild_id))
+        else:
+            return None
+    
+    def refresh_cache_config(self):
+        self.cache_datetime = com.get_current_datetime()
+        self.config_cache = json.load(open('data/config.json', 'r', encoding='utf-8'))
         
+
+    
 
 def setup(bot):
     bot.add_cog(Dashboard(bot))
