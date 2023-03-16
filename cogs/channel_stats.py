@@ -52,12 +52,18 @@ class Channel_Stats(commands.Cog):
             config = get_config(guild.id)
             if not config or not config.get('channel_stats'):
                 continue
+            print(f"{get_current_iso} [{guild.id}] - Refreshing channel stats")
             l = len(config['channel_stats'])
             
             users = await db.get_unique_users(guild.id)
             
             res = await db.get_users_hours(guild.id, users, limit = l)
-            
+            def ordinal(n: int):
+                if 11 <= (n % 100) <= 13:
+                    suffix = 'th'
+                else:
+                    suffix = ['th', 'st', 'nd', 'rd', 'th'][min(n % 10, 4)]
+                return str(n) + suffix
             if res != self.last_data.get(guild.id):
                 self.last_data[guild.id] = res
                 for idx, chan in enumerate(config['channel_stats']):
@@ -68,7 +74,7 @@ class Channel_Stats(commands.Cog):
                     disp = 'placehold'
                     if member:
                         disp = member.display_name
-                    name = f"#{idx+1} {disp[:10]} - {res[idx]['total']}"
+                    name = f"{ordinal(idx+1)} {disp[:10]} - {res[idx]['total']}"
                     channel = None
                     for g_chan in guild.channels:
                         if g_chan.id == chan:
@@ -100,6 +106,8 @@ class Channel_Stats(commands.Cog):
                 _open = "<CLOSED>"
                 if mins_till_ds >= 0 and mins_till_ds <= com.MINUTE_IN_HOUR * CAMP_HOURS_TILL_DS:
                     _open = "<OPEN>"
+                if mins_till_ds < 0:
+                    _open = "<UNKNOWN>"
                 channel = next((c for c in guild.channels if c.id == config['campstatus_stats']), None)
                 if channel and channel.name != _open:
                     print(f'setting channel {channel.name} to {_open}')

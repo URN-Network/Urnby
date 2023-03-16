@@ -3,11 +3,15 @@ import datetime
 from pytz import timezone
 
 utc = timezone('UTC')
-ny_tz = timezone('America/New_York')
+tz_str = 'America/New_York'
+ny_tz = timezone(tz_str)
 
 SECS_IN_MINUTE = 60
 MINUTE_IN_HOUR = 60
 SECS_IN_HOUR = MINUTE_IN_HOUR * SECS_IN_MINUTE
+
+def get_timezone_str() -> str:
+    return tz_str
 
 def get_current_datetime() -> datetime.datetime:
     now = utc.localize(datetime.datetime.utcnow().replace(microsecond=0))
