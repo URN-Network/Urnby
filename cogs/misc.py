@@ -8,6 +8,7 @@ import discord
 from discord.ext import commands
 
 # Internal
+import data.databaseapi as db
 import static.common as com
 from checks.IsAdmin import is_admin, NotAdmin
 from checks.IsCommandChannel import is_command_channel, NotCommandChannel
