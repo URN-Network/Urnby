@@ -35,16 +35,8 @@ class Clocks(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.state_lock = asyncio.Lock()
-        
         print('Initilization on clocks complete', flush=True)
     
-    def cog_check(self, ctx):
-        if ctx.guild is None:
-            raise NotCommandChannel()
-        config = self.get_config(ctx.guild.id)
-        if ctx.channel_id in config['command_channels']:
-            return True
-        raise NotCommandChannel()
     
     @commands.Cog.listener()
     async def on_ready(self):

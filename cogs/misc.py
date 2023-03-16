@@ -96,6 +96,12 @@ class Misc(commands.Cog):
             res = "Succeeded"
         await ctx.send_response(f"Deletion of msgid {messageid} was {res}", ephemeral=True)
         
+    @commands.slash_command(name="initdb", description="Owner command, initialize db tables")
+    @commands.is_owner()
+    async def _init_db(self, ctx):
+        await db.init_database()
+        await ctx.send_response(content=f"Database initialized")
+
     @commands.slash_command(name='configadd')
     @is_admin()
     async def _add_config(self, ctx, 

@@ -153,7 +153,7 @@ class Dashboard(commands.Cog):
                 timestr = com.datetime_from_timestamp(session['start_timestamp']).strftime("%b%d %I:%M%p")
             
             #TODO get camp queue
-            camp_queue = []
+            camp_queue = await db.get_replacement_queue(guild.id)
             
             # NOTE! Actives and Camp queue must be completed before this step as we are limiting based on the number of the aforementioned 
             lines = 2
@@ -199,7 +199,7 @@ class Dashboard(commands.Cog):
                 col1.append(f"{' Camp Queue':{29-reduce}}{'Hours available':>15}{' ':1}")
                 col1.append(seperator)
                 for item in camp_queue:
-                    col1.append(f"{space+item['display_name'][:29]:{31-reduce}}{item['delta']:>5.2f}{' / ':3}{item['ses_delta']:>5.2f}{' ':1}")
+                    col1.append(f"{' ' + item['name'][:44]:{45-reduce}}")
                 return col1
             
             def get_col2(mobile=False):
