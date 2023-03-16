@@ -103,11 +103,11 @@ class Channel_Stats(commands.Cog):
                     await channel.edit(name=mins_till_ds_str)
             channel = None
             if config.get('campstatus_stats'):
-                _open = "<CLOSED>"
+                _open = "Status: <CLOSED>"
                 if mins_till_ds >= 0 and mins_till_ds <= com.MINUTE_IN_HOUR * CAMP_HOURS_TILL_DS:
-                    _open = "<OPEN>"
+                    _open = "Status: <OPEN>"
                 if mins_till_ds < 0:
-                    _open = "<UNKNOWN>"
+                    _open = "Status: <UNKNOWN>"
                 channel = next((c for c in guild.channels if c.id == config['campstatus_stats']), None)
                 if channel and channel.name != _open:
                     print(f'setting channel {channel.name} to {_open}')

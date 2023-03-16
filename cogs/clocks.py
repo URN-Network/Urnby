@@ -542,7 +542,7 @@ class Clocks(commands.Cog):
             elif item['character'] == "QUAKE_DS_BONUS":
                 catagory = " Q"
             tz = com.get_timezone_str()
-            content += f"\n{item['rowid']:5} {_in.date().isoformat()} - {item['session'][:50]:50}  {catagory} from {_in.time()} {tz} to {_out.time()} {tz} for {ses_hours} {_timetype.lower()}"
+            content += f"\n{item['rowid']:5} {_in.date().isoformat()} - {item['session'][:50]:50}  {catagory} from {_in.time()} {_in.strftime('%Z')} to {_out.time()} {_out.strftime('%Z')} for {ses_hours} {_timetype.lower()}"
             # Max message length is 2000, give 100 leway for title/user hours ending
             if len(content) >= 1850:
                 clip_idx = content.rfind('\n', 0, 1850)
