@@ -2,6 +2,7 @@
 import json
 import datetime
 import os
+import re
 
 # External
 import discord
@@ -14,6 +15,8 @@ import data.databaseapi as db
 # Can only change channel name twice every 10 minutes
 REFRESH_TYPE = 'seconds'
 REFRESH_TIME = 360
+
+CAMP_HOURS_TILL_DS = 18
 
 DEBUG = os.getenv('DEBUG')
 if DEBUG:
@@ -74,6 +77,9 @@ class Channel_Stats(commands.Cog):
                     disp = 'placehold'
                     if member:
                         disp = member.display_name
+                        nonletter = re.search(r'[^\w]', disp)
+                        if nonletter:
+                            disp = disp[:nonletter.start()]
                     name = f"{ordinal(idx+1)} {disp[:10]} - {res[idx]['total']}"
                     channel = None
                     for g_chan in guild.channels:

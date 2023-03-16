@@ -34,7 +34,7 @@ cogs_list = [
 
 @UrnbyBot.event
 async def on_ready():
-    print(f"{com.get_current_iso()} - {UrnbyBot.user} is online!")
+    print(f"{com.get_current_iso()} - {UrnbyBot.user} is online!", flush=True)
     '''
     if DEBUG == "True":
         for guild in UrnbyBot.guilds:
