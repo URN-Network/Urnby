@@ -53,12 +53,12 @@ class Clocks(commands.Cog):
             print(f"Warning, missing the following tables in db: {missing_tables}")
     
     async def cog_before_invoke(self, ctx):
-        guild_id = 'DM'
-        if not ctx.guild:
+        guild_id = 0
+        if ctx.guild:
             guild_id = ctx.guild.id
-        now = com.get_current_datetime()
-        print(f'{com.get_current_iso()} [{guild_id}] - Command {ctx.command.qualified_name} by {ctx.author.name} - {ctx.author.id} - {ctx.selected_options}', flush=True)
-        command = {'command_name': ctx.command.qualified_name, 'options': str(ctx.selected_options), 'datetime': now.isoformat(), 'user': ctx.author.id, 'user_name': ctx.author.name, 'channel_name': ctx.channel.name}
+        now_iso = com.get_current_iso()
+        print(f'{now_iso} [{guild_id}] - Command {ctx.command.qualified_name} by {ctx.author.name} - {ctx.author.id} - {ctx.selected_options}', flush=True)
+        command = {'command_name': ctx.command.qualified_name, 'options': str(ctx.selected_options), 'datetime': now_iso, 'user': ctx.author.id, 'user_name': ctx.author.name, 'channel_name': ctx.channel.name}
         await db.store_command(guild_id, command)
         return
     
