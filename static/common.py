@@ -11,7 +11,7 @@ MINUTE_IN_HOUR = 60
 SECS_IN_HOUR = MINUTE_IN_HOUR * SECS_IN_MINUTE
 
 def get_timezone_str() -> str:
-    return tz_str
+    return get_current_datetime().strftime('%Z')
 
 def get_current_datetime() -> datetime.datetime:
     now = utc.localize(datetime.datetime.utcnow().replace(microsecond=0))

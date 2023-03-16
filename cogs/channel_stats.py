@@ -52,7 +52,7 @@ class Channel_Stats(commands.Cog):
             config = get_config(guild.id)
             if not config or not config.get('channel_stats'):
                 continue
-            print(f"{get_current_iso} [{guild.id}] - Refreshing channel stats")
+            print(f"{com.get_current_iso()} [{guild.id}] - Refreshing channel stats")
             l = len(config['channel_stats'])
             
             users = await db.get_unique_users(guild.id)
