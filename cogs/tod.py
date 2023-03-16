@@ -5,12 +5,10 @@ import json
 # External
 import discord
 from discord.ext import commands
-from pytz import timezone
-tz = timezone('EST')
 
 # Internal
+import static.common as com
 import data.databaseapi as db
-from static.common import get_hours_from_secs
 from views.ClearOutView import ClearOutView
 from checks.IsAdmin import is_admin, NotAdmin
 from checks.IsCommandChannel import is_command_channel, NotCommandChannel
@@ -35,10 +33,10 @@ class Tod(commands.Cog):
                        tod: discord.Option(str, name='tod', description="Use when time is not 'now' - 24hour clock time EST (ex 14:49)" , default='now'),
                        mobname: discord.Option(str, name='mobname', default='Drusella Sathir'),
                        daybefore: discord.Option(bool, name='daybefore', description='Use if the tod was actually yesterday',  default=False)):
-        now = datetime.datetime.now(tz)
+        now = com.get_current_datetime()
         tod_datetime = {}
         if tod == 'now':
-            tod_datetime = datetime.datetime.now(tz)
+            tod_datetime = now
         if not tod_datetime and len(tod) == 4:
             tod = '0' + tod
         
@@ -47,7 +45,7 @@ class Tod(commands.Cog):
             offset = -1
             
         if not tod_datetime:    
-            tod_datetime = datetime.datetime.combine(datetime.date.today()+datetime.timedelta(days=offset), datetime.time.fromisoformat(tod), tz)
+            tod_datetime = com.datetime_combine(datetime.date.today()+datetime.timedelta(days=offset), com.time_from_iso(tod))
             
         rec = {
                "mob": mobname, 
@@ -65,8 +63,8 @@ class Tod(commands.Cog):
     @commands.slash_command(name='gettod')
     async def _get_tod(self, ctx):
         rec = await db.get_tod(ctx.guild.id)
-        now = datetime.datetime.now(tz)
-        hours_till = get_hours_from_secs((datetime.datetime.fromtimestamp(rec['tod_timestamp'], tz)+datetime.timedelta(days=1)).timestamp() - now.timestamp())
+        now = com.get_current_datetime()
+        hours_till = com.get_hours_from_secs((datetime_from_iso(rec['tod_timestamp'])+datetime.timedelta(days=1)).timestamp() - now.timestamp())
         await ctx.send_response(content=f"ToD was {rec['_DEBUG_tod_datetime']} {rec['mob']} will spawn in {hours_till} hours", ephemeral=True)
 
 async def time_delta_to_minutes(delta:datetime.timedelta) -> float:

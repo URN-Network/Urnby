@@ -23,6 +23,7 @@ class CampQueue(commands.Cog):
         print('Initilization on campqueue complete')
 
     @commands.Cog.listener()
+    @is_in_dev()
     async def on_connect(self):
         print(f'campqueue connected to discord')
 
@@ -44,6 +45,7 @@ class CampQueue(commands.Cog):
         command = {'command_name': ctx.command.qualified_name, 'options': str(ctx.selected_options), 'datetime': now.isoformat(), 'user': ctx.author.id, 'user_name': ctx.author.name, 'channel_name': ctx.channel.name}
         await db.store_command(guild_id, command)
         return
+
 
     # ==============================================================================
     # Error Handlers

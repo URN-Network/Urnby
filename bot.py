@@ -6,6 +6,8 @@ import logging
 from asyncio import sleep
 from dotenv import load_dotenv
 
+import static.common as com
+
 logging.basicConfig(level=logging.INFO)
 
 load_dotenv()
@@ -27,12 +29,13 @@ cogs_list = [
     'misc',
     'dashboard',
     'tod',
+    'channel_stats',
 ]
 
 
 @UrnbyBot.event
 async def on_ready():
-    print(f"{UrnbyBot.user} is online!")
+    print(f"{com.get_current_iso()} - {UrnbyBot.user} is online!", flush=True)
     '''
     if DEBUG == "True":
         for guild in UrnbyBot.guilds:
