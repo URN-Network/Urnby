@@ -83,9 +83,11 @@ class Dashboard(commands.Cog):
             return False
         config = self.get_config(guild.id)
         if config.get('dashboard_channel'):
+            print(f'{com.get_current_iso()} [{guild.id}] - Purging dashboard', flush=True)
             channel = await guild.fetch_channel(config['dashboard_channel'])
             await channel.purge(check=chk)
         if config.get('mobile_dash_channel'):
+            print(f'{com.get_current_iso()} [{guild.id}] - Purging mobile dash', flush=True)
             mobile_channel = await guild.fetch_channel(config['mobile_dash_channel'])
             await mobile_channel.purge(check=chk)
     
@@ -172,36 +174,52 @@ class Dashboard(commands.Cog):
                         continue
                     item['display_name'] = member.display_name
             
+            def get_seperator(mobile=False):
+                reduce = 0
+                if mobile:
+                    reduce = 6
+                return f"{'-'*(45-reduce)}"
             
-            col1 = []
-            seperator = f"{'-'*45}"
-            sp = ' '
-            # 1st column 50 spaces 
-            col1.append(f"{' Active Session':15}{_open:^14}{'DS in: ':7}{mins_till_ds_str:8}{' ':1}")
-            col1.append(seperator)
-            col1.append(f"{' ' + session['session'][:23]:25}{'@ ':2}{timestr:13}{' EST ':5}")
-            col1.append(seperator)
-            col1.append(f"{' Active Users':<20}{'Current / Total':>24}{' ':1}") 
-            col1.append(seperator)
-            for item in actives:
-                col1.append(f"{' ' + item['display_name'][:23]:25}{item['delta']:>9.2f}{' / ':3}{item['ses_delta']:>7.2f}{' ':1}")
-            col1.append(seperator)
-            col1.append(f"{' Camp Queue':11}{'Hours available':>33}{' ':1}")
-            col1.append(seperator)
-            for item in camp_queue:
-                col1.append(f"{space+item['display_name'][:23]:25}{item['delta']:>9.2f}{' / ':3}{item['ses_delta']:>7.2f}{' ':1}")
+            def get_col1(mobile=False):
+                col1 = []
+                reduce = 0
+                if mobile:
+                    reduce = 6
+                seperator = get_seperator(mobile)
+                # 1st column 50 spaces 
+                col1.append(f"{' Active Session':15}{_open:^{14-reduce}}{'DS in: ':7}{mins_till_ds_str:8}{' ':1}")
+                col1.append(seperator)
+                col1.append(f"{' ' + session['session'][:23]:{25-reduce}}{'@ ':2}{timestr:13}{' EST ':5}")
+                col1.append(seperator)
+                col1.append(f"{' Active Users':<{29-reduce}}{'Current / Total':>15}{' ':1}") 
+                col1.append(seperator)
+                for item in actives:
+                    col1.append(f"{' ' + item['display_name'][:29]:{31-reduce}}{item['delta']:>5.2f}{' / ':3}{item['ses_delta']:>5.2f}{' ':1}")
+                col1.append(seperator)
+                col1.append(f"{' Camp Queue':{29-reduce}}{'Hours available':>15}{' ':1}")
+                col1.append(seperator)
+                for item in camp_queue:
+                    col1.append(f"{space+item['display_name'][:29]:{31-reduce}}{item['delta']:>5.2f}{' / ':3}{item['ses_delta']:>5.2f}{' ':1}")
+                return col1
             
+            def get_col2(mobile=False):
+                #Appending 2nd column
+                col2 = []
+                reduce = 0
+                if mobile:
+                    reduce = 6
+                seperator = get_seperator(mobile)
+                col2.append(f" Top {ex_lines+cont_lines} in Hours")
+                col2.append(seperator)
+                for idx in range(ex_lines+cont_lines):
+                    if idx >= len(res):
+                        col2.append(f"")
+                        continue
+                    col2.append(f"{' ' + res[idx]['display_name'][:36]:{37-reduce}}{' ':1}{res[idx]['total']:>6.2f}{' ':1}")
+                return col2
             
-            #Appending 2nd column
-            col2 = []
-            col2.append(f" Top {ex_lines+cont_lines} in Hours")
-            col2.append(seperator)
-            for idx in range(ex_lines+cont_lines):
-                if idx >= len(res):
-                    col2.append(f"")
-                    continue
-                col2.append(f"{' ' + res[idx]['display_name'][:35]:36}{' ':1}{res[idx]['total']:>7.2f}{' ':1}")
-            
+            col1 = get_col1()
+            col2 = get_col2()
             desktop_dash = "```\n"
             for idx, _ in enumerate(col1):
                 div = '|'
@@ -210,12 +228,14 @@ class Dashboard(commands.Cog):
                 desktop_dash += col1[idx] + div + col2[idx] + '\n'
             desktop_dash += "```\n"
             
+            mcol1 = get_col1(True)
+            mcol2 = get_col2(True)
             mobile_dash = "```\n"
-            for idx in range(len(col1)):
-                mobile_dash += col1[idx] + '\n'
-            mobile_dash += '\n' + seperator + '\n'
-            for idx in range(len(col2)):
-                mobile_dash += col2[idx] + '\n'
+            for idx in range(len(mcol1)):
+                mobile_dash += mcol1[idx] + '\n'
+            mobile_dash += '\n' + get_seperator(True) + '\n'
+            for idx in range(len(mcol2)):
+                mobile_dash += mcol2[idx] + '\n'
             mobile_dash += "```\n"
             
             channel = await guild.fetch_channel(config['dashboard_channel'])
