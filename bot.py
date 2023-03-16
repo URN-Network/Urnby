@@ -27,7 +27,7 @@ cogs_list = [
     'misc',
     'dashboard',
     'tod',
-    
+    'channel_stats',
 ]
 
 @UrnbyBot.event

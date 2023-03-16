@@ -231,7 +231,8 @@ class Dashboard(commands.Cog):
                 '''
                 if config.get('mobile_dash_channel'):
                     mobile_channel = await guild.fetch_channel(config['mobile_dash_channel'])
-                    if mobile_channel:
+                    
+                    if mobile_channel and mobile_channel.permissions_for(guild.get_member(self.bot.user.id)).send_messages:
                         await mobile_channel.send(content=mobile_dash, silent=True)
                 '''
                 self.delay[guild.id] = True
@@ -240,7 +241,7 @@ class Dashboard(commands.Cog):
                 '''
                 if config.get('mobile_dash_channel'):
                     mobile_channel = await guild.fetch_channel(config['mobile_dash_channel'])
-                    if mobile_channel:
+                    if mobile_channel and mobile_channel.permissions_for(guild.get_member(self.bot.user.id)).send_messages:
                         await mobile_channel.send(content=mobile_dash, silent=True)
                 '''
                 self.open_transitioned[guild.id] = False
