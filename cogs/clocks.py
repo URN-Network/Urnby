@@ -56,7 +56,7 @@ class Clocks(commands.Cog):
         guild_id = 'DM'
         if not ctx.guild:
             guild_id = ctx.guild.id
-        now = db.get_current_datetime()
+        now = com.get_current_datetime()
         print(f'{com.get_current_iso()} [{guild_id}] - Command {ctx.command.qualified_name} by {ctx.author.name} - {ctx.author.id} - {ctx.selected_options}', flush=True)
         command = {'command_name': ctx.command.qualified_name, 'options': str(ctx.selected_options), 'datetime': now.isoformat(), 'user': ctx.author.id, 'user_name': ctx.author.name, 'channel_name': ctx.channel.name}
         await db.store_command(guild_id, command)

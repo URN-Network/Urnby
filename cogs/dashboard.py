@@ -228,21 +228,21 @@ class Dashboard(commands.Cog):
                     mobile_dash += "Camp is open!"
                     
                 await channel.send(content=desktop_dash, silent=True)
-                
+                '''
                 if config.get('mobile_dash_channel'):
                     mobile_channel = await guild.fetch_channel(config['mobile_dash_channel'])
                     if mobile_channel:
                         await mobile_channel.send(content=mobile_dash, silent=True)
-                
+                '''
                 self.delay[guild.id] = True
             else:
                 await channel.send(content=desktop_dash, delete_after=REFRESH_TIME+.5, silent=True)
-                
+                '''
                 if config.get('mobile_dash_channel'):
                     mobile_channel = await guild.fetch_channel(config['mobile_dash_channel'])
                     if mobile_channel:
                         await mobile_channel.send(content=mobile_dash, silent=True)
-                
+                '''
                 self.open_transitioned[guild.id] = False
                 self.delay[guild.id] = False
     
