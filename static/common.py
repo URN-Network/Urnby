@@ -1,6 +1,7 @@
 import random
 import datetime
 from pytz import timezone
+from zoneinfo import ZoneInfo
 
 utc = timezone('UTC')
 tz_str = 'America/New_York'
@@ -30,10 +31,15 @@ def datetime_from_iso(isostring:str) -> datetime.datetime:
     return datetime.datetime.fromisoformat(isostring)
     
 def datetime_combine(date, time) -> datetime.datetime:
-    return ny_tz.normalize(datetime.datetime.combine(date, time))
-    
+    d = datetime.date.fromisoformat(date)
+    t = datetime.time.fromisoformat(time)
+    return datetime.datetime.combine(d, t, tzinfo=ZoneInfo(tz_str))
+
+def date_from_iso(isodatestring:str) -> datetime.date:
+    return ny_tz.normalize(datetime.date.fromisoformat(isodatestring))
+
 def time_from_iso(isotimestring:str) -> datetime.time:
-    return datetime.time.fromisoformat(isotimestring).replace(tzinfo=ny_tz)
+    return datetime.time.fromisoformat(isotimestring)
 
 def get_hours_from_secs(timestamp_delta: int) -> float:
     res = round(timestamp_delta/SECS_IN_HOUR, 2)

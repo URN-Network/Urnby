@@ -98,7 +98,7 @@ class CampQueue(commands.Cog):
         
         content = '\nCurrent replacements: '
         for rep in reps:
-            content += f'\n<@{rep["user"]}> @ {datetime_from_timestamp(rep["in_timestamp"]).isoformat()}'
+            content += f'\n<@{rep["user"]}> @ {com.datetime_from_timestamp(rep["in_timestamp"]).isoformat()}'
         
         if not reps:
             content = 'There are no replacements available'

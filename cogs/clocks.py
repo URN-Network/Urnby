@@ -665,8 +665,7 @@ class Clocks(commands.Cog):
         was = {}
         if len(time) == 4:
             time = "0" + time
-        arg_date = datetime.date.fromisoformat(_date)
-        _datetime = com.datetime_combine(arg_date, com.time_from_iso(time))
+        _datetime = com.datetime_combine(_date, time)
         if _type == 'Clock in time':
             was['timestamp'] = rec['in_timestamp']
             was['_DEBUG'] = rec['_DEBUG_in']
