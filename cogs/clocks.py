@@ -711,11 +711,11 @@ class Clocks(commands.Cog):
         intime += "-05:00"
         outtime += "-05:00"
         arg_date = datetime.date.fromisoformat(date)
-        in_datetime = com.datetime_combine(arg_date.isoformat(), datetime.time.fromisoformat(intime))
+        in_datetime = com.datetime_combine(arg_date.isoformat(), intime)
         if dayafter == "True":
-            out_datetime = com.datetime_combine((arg_date+datetime.timedelta(days=1)).isoformat(), datetime.time.fromisoformat(outtime))
+            out_datetime = com.datetime_combine((arg_date+datetime.timedelta(days=1)).isoformat(), outtime)
         else:
-            out_datetime = com.datetime_combine(arg_date.isoformat(), datetime.time.fromisoformat(outtime))
+            out_datetime = com.datetime_combine(arg_date.isoformat(), outtime)
         in_timestamp = int(in_datetime.timestamp())
         out_timestamp = int(out_datetime.timestamp())
         doc = {
