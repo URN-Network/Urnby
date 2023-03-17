@@ -132,7 +132,7 @@ class CampQueue(commands.Cog):
         if not userid:
             return
         removed = await db.remove_replacement(ctx.guild.id, userid)
-        if not removed:
+        if removed is None:
             await ctx.send_response(content=f'User is not in queue')
             return
         await ctx.send_response(content=f'{display_name} Successfully removed from replacement queue')    
@@ -146,7 +146,7 @@ class CampQueue(commands.Cog):
         if not userid:
             return
         removed = await db.remove_replacement(ctx.guild.id, userid)
-        if not removed:
+        if removed is None:
             await ctx.send_response(content=f'User is not in queue')
             return
         await ctx.send_response(content=f'{display_name} Successfully removed from replacement queue')   
@@ -159,7 +159,7 @@ class CampQueue(commands.Cog):
         if not userid:
             return
         removed = await db.remove_replacement(ctx.guild.id, userid)
-        if not removed:
+        if removed is None:
             await ctx.send_response(content=f'User is not in queue')
             return
         await ctx.send_response(content=f'{display_name} Successfully removed from replacement queue')   
