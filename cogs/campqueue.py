@@ -4,11 +4,10 @@ import datetime
 # External
 import discord
 from discord.ext import commands
-from pytz import timezone
-tz = timezone('EST')
 
 # Internal
 import data.databaseapi as db
+import static.common as com
 from checks.IsAdmin import is_admin, NotAdmin
 from checks.IsCommandChannel import is_command_channel, NotCommandChannel
 from checks.IsMemberVisible import is_member_visible, NotMemberVisible
@@ -34,15 +33,12 @@ class CampQueue(commands.Cog):
             print(f"Warning, missing the following tables in db: {missing_tables}")
     
     async def cog_before_invoke(self, ctx):
-        now = datetime.datetime.now(tz)
-        now = now.replace(microsecond = 0)
-        guild_id = None
-        if not ctx.guild:
-            guild_id = 'DM'
-        else:
+        guild_id = 0
+        if ctx.guild:
             guild_id = ctx.guild.id
-        print(f'{now.isoformat()} [{guild_id}] - Command {ctx.command.qualified_name} by {ctx.author.name} - {ctx.author.id}', flush=True)
-        command = {'command_name': ctx.command.qualified_name, 'options': str(ctx.selected_options), 'datetime': now.isoformat(), 'user': ctx.author.id, 'user_name': ctx.author.name, 'channel_name': ctx.channel.name}
+        now_iso = com.get_current_iso()
+        print(f'{now_iso} [{guild_id}] - Command {ctx.command.qualified_name} by {ctx.author.name} - {ctx.author.id} - {ctx.selected_options}', flush=True)
+        command = {'command_name': ctx.command.qualified_name, 'options': str(ctx.selected_options), 'datetime': now_iso, 'user': ctx.author.id, 'user_name': ctx.author.name, 'channel_name': ctx.channel.name}
         await db.store_command(guild_id, command)
         return
 
@@ -51,7 +47,7 @@ class CampQueue(commands.Cog):
     # Error Handlers
     # ==============================================================================
     async def cog_command_error(self, ctx: commands.Context, error: commands.CommandError):
-        now = datetime.datetime.now(tz).replace(microsecond = 0)
+        now = com.get_current_datetime()
         guild_id = None
         channel_name = None
         if not ctx.guild:
@@ -99,96 +95,100 @@ class CampQueue(commands.Cog):
             return
 
         reps = await db.get_replacement_queue(ctx.guild.id)
+        
         content = '\nCurrent replacements: '
         for rep in reps:
-            content += f'<@{rep["user"]}> --> '
-        content += f'<END>'
+            content += f'\n<@{rep["user"]}> @ {datetime_from_timestamp(rep["in_timestamp"]).isoformat()}'
+        
+        if not reps:
+            content = 'There are no replacements available'
         await ctx.send_response(content=content, ephemeral=not public, allowed_mentions=discord.AllowedMentions(users=False))
 
-
-    @commands.slash_command(name='rep', description='Add yourself to the replacement list (FIFO)')
+    @commands.slash_command(name='repadd', description='Add yourself to the replacement list (FIFO)')
     @is_member()
     @is_command_channel()
-    async def _rep(self, ctx, userid: discord.Option(str, name="userid", required=False)):
-        now = datetime.datetime.now(tz)
-
-        if userid:
-            userid = int(userid)
-            try:
-                user = await ctx.guild.fetch_member(userid)
-            except discord.errors.NotFound:
-                await ctx.send_response(content=f'Invalid User ID')
-                return
-            else:
-                display_name = user.display_name
-        else:
-            display_name = ctx.author.display_name
-            
+    async def _repadd(self, ctx, userid: discord.Option(str, name="userid", default = None, required=False)):
+        userid, display_name = await get_userid_and_name(ctx, userid)
+        if not userid:
+            return
         rep = {
-            'user': userid if userid else ctx.author.id,
+            'user': userid,
             'name': display_name,
-            'in_timestamp': int(now.timestamp())
+            'in_timestamp': com.get_current_timestamp(),
         }
 
         added = await db.add_replacement(ctx.guild.id, rep)
-        if added is not None:
-            await ctx.send_response(content=f'{display_name} Successfully added to replacement queue')
-        else:
+        if not added:
             await ctx.send_response(content=f'User is already in queue')
+            return
+        await ctx.send_response(content=f'{display_name} Successfully added to replacement queue')
+        
     
-    @commands.slash_command(name='unrep', description='Remove yourself from the replacement list')
+    @commands.slash_command(name='repremove', description='Remove yourself from the replacement list')
     @is_member()
     @is_command_channel()
-    async def _unrep(self, ctx, userid: discord.Option(str, name="userid", required=False)):
-
-        if userid:
-            userid = int(userid)
-            try:
-                user = await ctx.guild.fetch_member(userid)
-            except discord.errors.NotFound:
-                await ctx.send_response(content=f'Invalid User ID')
-                return
-            else:
-                display_name = user.display_name
-        else:
-            display_name = ctx.author.display_name
-
-        removed = await db.remove_replacement(ctx.guild.id, userid if userid else ctx.author.id)
-        if removed is not None:
-            await ctx.send_response(content=f'{display_name} Successfully removed from replacement queue')
-        else:
+    async def _repremove(self, ctx, userid: discord.Option(str, name="userid", default = None, required=False)):
+        userid, display_name = await get_userid_and_name(ctx, userid)
+        if not userid:
+            return
+        removed = await db.remove_replacement(ctx.guild.id, userid)
+        if not removed:
             await ctx.send_response(content=f'User is not in queue')
-
-    @commands.slash_command(name='admin_rep')
-    @is_admin()
-    async def _adminrep(self, ctx,
-                _userid: discord.Option(int, name="userid", required=True),
-                intime: discord.Option(int, name="intime", required=False, default=0)):
-
-        if intime == 0:
-            intime = int(datetime.datetime.now(tz).timestamp())
+            return
+        await ctx.send_response(content=f'{display_name} Successfully removed from replacement queue')    
         
-        rep = {
-            'user': _userid,
-            'name': "adminuser",
-            'in_timestamp': intime
-        }
-        await db.add_replacement(ctx.guild.id, rep)
-        await ctx.send_response(content=f'Added.')
-        
-    @commands.slash_command(name='admin_unrep')
+    @commands.slash_command(name='admin_repremove')
     @is_admin()
-    async def _adminunrep(self, ctx,
+    @is_command_channel()
+    async def _adminrepremove(self, ctx,
                 _userid: discord.Option(str, name="userid", required=True)):
-        await db.remove_replacement(ctx.guild.id, _userid)
-        await ctx.send_response(content=f'Removed.')
-
-    @commands.slash_command(name='admin_clearreps')
+        userid, display_name = await get_userid_and_name(ctx, userid)
+        if not userid:
+            return
+        removed = await db.remove_replacement(ctx.guild.id, userid)
+        if not removed:
+            await ctx.send_response(content=f'User is not in queue')
+            return
+        await ctx.send_response(content=f'{display_name} Successfully removed from replacement queue')   
+    
+    @commands.user_command(name="Admin - Dequeue")
     @is_admin()
-    async def _adminclearreps(self, ctx):
-        await db.clear_replacement_queue(ctx.guild.id)
-        await ctx.send_response(content=f'Queue cleared.')
-
+    @is_command_channel()
+    async def _adminuserrepremove(self, ctx, member: discord.Member):
+        userid, display_name = await get_userid_and_name(ctx, member.id)
+        if not userid:
+            return
+        removed = await db.remove_replacement(ctx.guild.id, userid)
+        if not removed:
+            await ctx.send_response(content=f'User is not in queue')
+            return
+        await ctx.send_response(content=f'{display_name} Successfully removed from replacement queue')   
+    
+    
+    @commands.slash_command(name='admin_repclear')
+    @is_admin()
+    @is_command_channel()
+    async def _adminrepclear(self, ctx):
+        res = await db.clear_replacement_queue(ctx.guild.id)
+        if not res:
+            await ctx.send_response(content=f'Problem occured while clearing camp queue.')
+            return
+        await ctx.send_response(content=f'Camp Queue cleared.')
+        
+async def get_userid_and_name(ctx, userid):
+    if not userid:
+        userid = ctx.author.id
+        display_name = ctx.author.display_name
+    else:
+        try:
+            userid = int(userid)
+            user = await ctx.guild.fetch_member(userid)
+            display_name = user.display_name
+        except (discord.errors.NotFound, ValueError):
+            await ctx.send_response(content=f'Invalid User ID')
+            return None, None
+            
+    return userid, display_name
 
 def setup(bot):
     bot.add_cog(CampQueue(bot))

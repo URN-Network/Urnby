@@ -15,26 +15,17 @@ async def check_tables(tbls):
         
 async def init_database():
     async with aiosqlite.connect('data/urnby.db') as db:
-        query = f"""CREATE TABLE IF NOT EXISTS "historical"(server, user, character, session, in_timestamp, out_timestamp, _DEBUG_user_name, _DEBUG_in, _DEBUG_out, _DEBUG_delta);"""
-        await db.execute(query)
-        await db.commit()
-        query = f"""CREATE TABLE IF NOT EXISTS "session"(server, session, created_by, _DEBUG_started_by, _DEBUG_start, start_timestamp, ended_by, _DEBUG_ended_by, _DEBUG_end, end_timestamp, _DEBUG_delta, hash);"""
-        await db.execute(query)
-        await db.commit()
-        query = f"""CREATE TABLE IF NOT EXISTS "session_history"(server,     session,  created_by, _DEBUG_started_by,   _DEBUG_start,  start_timestamp, ended_by, _DEBUG_ended_by,  _DEBUG_end, end_timestamp,      _DEBUG_delta);"""
-        await db.execute(query)
-        await db.commit()
-        query = f"""CREATE TABLE IF NOT EXISTS "active"(server, user, character, session, in_timestamp, out_timestamp, _DEBUG_user_name, _DEBUG_in, _DEBUG_out, _DEBUG_delta);"""
-        await db.execute(query)
-        await db.commit()
-        query = f"""CREATE TABLE IF NOT EXISTS "commands"(server, command_name, options, datetime, user, user_name, channel_name);"""
-        await db.execute(query)
-        await db.commit()
-        query = f"""CREATE TABLE IF NOT EXISTS "tod"(server, mob, tod_timestamp, submitted_timestamp, submitted_by_id, _DEBUG_submitted_datetime, _DEBUG_submitted_by, _DEBUG_tod_datetime);"""
-        await db.execute(query)
-        await db.commit()
-        query = f"""CREATE TABLE IF NOT EXISTS "reps"(server, user, name, in_timestamp, UNIQUE(server, user));"""
-        await db.execute(query)
+        tables = [
+        """CREATE TABLE IF NOT EXISTS "historical"(server, user, character, session, in_timestamp, out_timestamp, _DEBUG_user_name, _DEBUG_in, _DEBUG_out, _DEBUG_delta);""",
+        """CREATE TABLE IF NOT EXISTS "session"(server, session, created_by, _DEBUG_started_by, _DEBUG_start, start_timestamp, ended_by, _DEBUG_ended_by, _DEBUG_end, end_timestamp, _DEBUG_delta);""",
+        """CREATE TABLE IF NOT EXISTS "session_history"(server, session, created_by, _DEBUG_started_by, _DEBUG_start, start_timestamp, ended_by, _DEBUG_ended_by, _DEBUG_end, end_timestamp,      _DEBUG_delta);""",
+        """CREATE TABLE IF NOT EXISTS "active"(server, user, character, session, in_timestamp, out_timestamp, _DEBUG_user_name, _DEBUG_in, _DEBUG_out, _DEBUG_delta);""",
+        """CREATE TABLE IF NOT EXISTS "commands"(server, command_name, options, datetime, user, user_name, channel_name);""",
+        """CREATE TABLE IF NOT EXISTS "tod"(server, mob, tod_timestamp, submitted_timestamp, submitted_by_id, _DEBUG_submitted_datetime, _DEBUG_submitted_by, _DEBUG_tod_datetime);""",
+        """CREATE TABLE IF NOT EXISTS "reps"(server, user, name, in_timestamp, UNIQUE(server, user));""",
+        ]
+        for query in tables:
+            await db.execute(query)
         await db.commit()
 
 async def flush_wal():
@@ -335,7 +326,7 @@ async def get_replacement_queue(guild_id) -> list:
     res = []
     async with aiosqlite.connect('data/urnby.db') as db:
         db.row_factory = aiosqlite.Row
-        query = f"SELECT rowid, * FROM reps WHERE server = {guild_id} ORDER BY in_timestamp"
+        query = f"SELECT rowid, * FROM reps WHERE server = {guild_id} ORDER BY in_timestamp DESC"
         async with db.execute(query) as cursor:
             rows = await cursor.fetchall()
             res = [dict(row) for row in rows]
@@ -345,7 +336,7 @@ async def add_replacement(guild_id, replacement):
     lastrow = 0
     async with aiosqlite.connect('data/urnby.db') as db:
         try:
-            query = f"""INSERT INTO reps(server,      user, name, in_timestamp)
+            query = f"""INSERT INTO reps(server, user, name, in_timestamp)
                                     VALUES({guild_id}, :user, :name, :in_timestamp)"""
             async with db.execute(query, replacement) as cursor:
                 lastrow = cursor.lastrowid
@@ -374,7 +365,7 @@ async def clear_replacement_queue(guild_id):
     lastrow = 0
     async with aiosqlite.connect('data/urnby.db') as db:
         db.row_factory = aiosqlite.Row
-        query = f"""DELETE FROM reps"""
+        query = f"""DELETE FROM reps WHERE server = {guild_id}"""
         async with db.execute(query) as cursor:
             lastrow = cursor.lastrowid
         await db.commit()

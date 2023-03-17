@@ -177,29 +177,31 @@ class Dashboard(commands.Cog):
             def get_seperator(mobile=False):
                 reduce = 0
                 if mobile:
-                    reduce = 6
-                return f"{'-'*(45-reduce)}"
+                    reduce = 10
+                return f"{'-'*(50-reduce)}"
             
             def get_col1(mobile=False):
                 col1 = []
                 reduce = 0
                 if mobile:
-                    reduce = 6
+                    reduce = 10
                 seperator = get_seperator(mobile)
                 # 1st column 50 spaces 
-                col1.append(f"{' Active Session':15}{_open:^{14-reduce}}{'DS in: ':7}{mins_till_ds_str:8}{' ':1}")
+                col1.append(f"{' Active Session':15}{_open:^{19-reduce}}{'DS in: ':7}{mins_till_ds_str:8}{' ':1}")
                 col1.append(seperator)
-                col1.append(f"{' ' + session['session'][:23]:{25-reduce}}{'@ ':2}{timestr:13}{' EST ':5}")
+                col1.append(f"{' ' + session['session'][:28-reduce]:{30-reduce}}{'@ ':2}{timestr:13}{' EST ':5}")
                 col1.append(seperator)
-                col1.append(f"{' Active Users':<{29-reduce}}{'Current / Total':>15}{' ':1}") 
+                col1.append(f"{' Active Users':<{34-reduce}}{'Current / Total':>15}{' ':1}") 
                 col1.append(seperator)
                 for item in actives:
-                    col1.append(f"{' ' + item['display_name'][:29]:{31-reduce}}{item['delta']:>5.2f}{' / ':3}{item['ses_delta']:>5.2f}{' ':1}")
+                    col1.append(f"{' ' + item['display_name'][:24-reduce]:{36-reduce}}{item['delta']:>5.2f}{' / ':3}{item['ses_delta']:>5.2f}{' ':1}")
                 col1.append(seperator)
-                col1.append(f"{' Camp Queue':{29-reduce}}{'Hours available':>15}{' ':1}")
+                col1.append(f"{' Camp Queue':{36-reduce}}{'Mins in queue':>13}{' ':1}")
                 col1.append(seperator)
+                now = com.get_current_datetime()
                 for item in camp_queue:
-                    col1.append(f"{' ' + item['name'][:44]:{45-reduce}}")
+                    mins = int((now - com.datetime_from_timestamp(item['in_timestamp'])).total_seconds()/com.SECS_IN_MINUTE)
+                    col1.append(f"{' ' + item['name'][:41-reduce]:{43-reduce}}{' @ ':3}{mins:3}{' ':1}")
                 return col1
             
             def get_col2(mobile=False):
@@ -207,7 +209,7 @@ class Dashboard(commands.Cog):
                 col2 = []
                 reduce = 0
                 if mobile:
-                    reduce = 6
+                    reduce = 10
                 seperator = get_seperator(mobile)
                 col2.append(f" Top {ex_lines+cont_lines} in Hours")
                 col2.append(seperator)
@@ -215,7 +217,7 @@ class Dashboard(commands.Cog):
                     if idx >= len(res):
                         col2.append(f"")
                         continue
-                    col2.append(f"{' ' + res[idx]['display_name'][:36]:{37-reduce}}{' ':1}{res[idx]['total']:>6.2f}{' ':1}")
+                    col2.append(f"{' ' + res[idx]['display_name'][:41-reduce]:{42-reduce}}{' ':1}{res[idx]['total']:>6.2f}{' ':1}")
                 return col2
             
             col1 = get_col1()

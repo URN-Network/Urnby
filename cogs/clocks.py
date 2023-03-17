@@ -174,9 +174,13 @@ class Clocks(commands.Cog):
                 '_DEBUG_out': '',
                 '_DEBUG_delta': '',
             }
+        removed = await db.remove_replacement(ctx.guild.id, ctx.author.id)
         
+        content = f'{ctx.author.display_name} {com.scram("Successfully")} clocked in at <t:{doc["in_timestamp"]}:f>'
+        if removed is not None:
+            content += f' and was removed from replacement list'
         await db.store_active_record(ctx.guild.id, doc)
-        await ctx.send_response(content=f'{ctx.author.display_name} {com.scram("Successfully")} clocked in at <t:{doc["in_timestamp"]}:f>')
+        await ctx.send_response(content=content)
         
         config = self.get_config(ctx.guild.id)
         if 'max_active' in config.keys() and config['max_active'] < len(actives)+1:

@@ -7,6 +7,7 @@ from asyncio import sleep
 from dotenv import load_dotenv
 
 import static.common as com
+import data.databaseapi as db
 
 logging.basicConfig(level=logging.INFO)
 
@@ -19,7 +20,6 @@ if DEBUG:
     set_event_loop_policy(WindowsSelectorEventLoopPolicy())
 
 intents = discord.Intents.default()
-#intents.members = True
 UrnbyBot = discord.Bot(intents=intents)
 
 cogs_list = [
@@ -35,15 +35,8 @@ cogs_list = [
 
 @UrnbyBot.event
 async def on_ready():
+    await db.init_database()
     print(f"{com.get_current_iso()} - {UrnbyBot.user} is online!", flush=True)
-    '''
-    if DEBUG == "True":
-        for guild in UrnbyBot.guilds:
-            await guild.get_member(UrnbyBot.user.id).edit(nick='Baul Pearer')
-    else:
-        for guild in UrnbyBot.guilds:
-            await guild.get_member(UrnbyBot.user.id).edit(nick='Paul Bearer')
-    '''
 
 @UrnbyBot.command()
 @commands.is_owner()

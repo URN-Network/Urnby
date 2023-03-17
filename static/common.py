@@ -10,9 +10,6 @@ SECS_IN_MINUTE = 60
 MINUTE_IN_HOUR = 60
 SECS_IN_HOUR = MINUTE_IN_HOUR * SECS_IN_MINUTE
 
-def get_timezone_str() -> str:
-    return get_current_datetime().strftime('%Z')
-
 def get_current_datetime() -> datetime.datetime:
     now = utc.localize(datetime.datetime.utcnow().replace(microsecond=0))
     return now.astimezone(ny_tz)
@@ -22,6 +19,9 @@ def get_current_timestamp() -> int:
 
 def get_current_iso() -> str:
     return get_current_datetime().isoformat()
+
+def get_timezone_str() -> str:
+    return get_current_datetime().strftime('%Z')
 
 def datetime_from_timestamp(timestamp:int) -> datetime.datetime:
     return datetime.datetime.fromtimestamp(timestamp, ny_tz)
