@@ -215,8 +215,8 @@ class Clocks(commands.Cog):
             _in = com.datetime_from_timestamp(record['in_timestamp'])
             _out = com.datetime_from_timestamp(record['out_timestamp'])
             for day in range((_out.date() - _in.date()).days+1):
-                bonus_in = com.datetime_combine(_in.date()+datetime.timedelta(days=day), com.time_from_iso(bonus['start']))
-                bonus_out = com.datetime_combine(_in.date()+datetime.timedelta(days=day), com.time_from_iso(bonus['end']))
+                bonus_in = com.datetime_combine((_in.date()+datetime.timedelta(days=day)).isoformat(), com.time_from_iso(bonus['start']))
+                bonus_out = com.datetime_combine((_in.date()+datetime.timedelta(days=day)).isoformat(), com.time_from_iso(bonus['end']))
                 if _in <= bonus_out and _out >= bonus_in:
                     
                     print(f'{com.get_current_iso()} [{guild_id}] - Bonus hours found for {record["_DEBUG_user_name"]}', flush=True)

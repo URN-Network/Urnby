@@ -11,7 +11,8 @@ def get_config():
 
 def is_member():
     async def predicate(ctx):
-        
+        if ctx.guild is None:
+            return False
         allowed_member_roles = get_config()[str(ctx.guild.id)]['member_roles']
         
         author_member = await ctx.guild.fetch_member(ctx.author.id)

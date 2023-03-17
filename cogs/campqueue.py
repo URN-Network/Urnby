@@ -22,7 +22,6 @@ class CampQueue(commands.Cog):
         print('Initilization on campqueue complete')
 
     @commands.Cog.listener()
-    @is_in_dev()
     async def on_connect(self):
         print(f'campqueue connected to discord')
 
