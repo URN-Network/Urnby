@@ -30,7 +30,7 @@ def datetime_from_iso(isostring:str) -> datetime.datetime:
     return datetime.datetime.fromisoformat(isostring)
     
 def datetime_combine(date, time) -> datetime.datetime:
-    return datetime.datetime.combine(date, time, ny_tz)
+    return ny_tz.normalize(datetime.datetime.combine(date, time))
     
 def time_from_iso(isotimestring:str) -> datetime.time:
     return datetime.time.fromisoformat(isotimestring).replace(tzinfo=ny_tz)

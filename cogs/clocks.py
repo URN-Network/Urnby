@@ -28,8 +28,6 @@ from checks.IsInDev import is_in_dev, InDevelopment
 # Any stored values NOT as integer timestamps are for info/debug ONLY do not access isoformats
 
 
-
-
 class Clocks(commands.Cog):
     
     def __init__(self, bot):
@@ -140,7 +138,6 @@ class Clocks(commands.Cog):
             content += f"\n{user.display_name[:19]:20}{delta:.2f} hours active"
         content += "```"
         await ctx.send_response(content=content, ephemeral=not public)
-    
     
     @commands.slash_command(name='clockin', description='Clock into the active session')
     @is_member()
@@ -274,7 +271,6 @@ class Clocks(commands.Cog):
         user = await ctx.guild.fetch_member(user_id)
         return {'status': True,'record': record, 'row': res, 'content': f'{user.display_name} {com.scram("Successfully")} clocked out at <t:{record["out_timestamp"]}>, stored record #{res} for {record["_DEBUG_delta"]} hours. Your total is at {round(tot, 2)}'}
     
-
     # ==============================================================================
     # Session Commands
     # ==============================================================================
@@ -290,7 +286,7 @@ class Clocks(commands.Cog):
         content = f'Session \"{session["session"]}\" started at <t:{start_timestamp}:f> local'
         await ctx.send_response(content=content, ephemeral=True)
         return
-        
+    
     @commands.slash_command(name='sessionstart', description='Start an session, only one session is allowed at a time')
     @is_member()
     @is_member_visible()
@@ -323,8 +319,7 @@ class Clocks(commands.Cog):
         finally:
             self.state_lock.release()
         await ctx.send_response(content=content)
-        
-      
+    
     @commands.slash_command(name='sessionend', description='Ends active session, clocking out all active users in the process')
     @is_member()
     @is_member_visible()
@@ -374,8 +369,6 @@ class Clocks(commands.Cog):
     # ==============================================================================
     # Utility/Fetch Commands
     # ==============================================================================
-    
-        
     
     @commands.slash_command(name='list', description='Ephemeral optional - Gets list of users that have accrued time, ordered by highest hours urned')
     @is_member()
@@ -470,6 +463,7 @@ class Clocks(commands.Cog):
         await ctx.send_response(content=content, ephemeral=True)
         pass
     
+    '''
     # Gets last 20 commands by user, returned as an ephemeral message or maybe all commands as an attached doc?
     @commands.user_command(name="Get User Commands")
     @is_member()
@@ -491,6 +485,7 @@ class Clocks(commands.Cog):
             content += '```'
         await ctx.send_response(content=content, ephemeral=True)
         pass
+    '''
     
     # Gets last 20 commands by user, returned as an ephemeral message or maybe all commands as an attached doc?
     @commands.user_command(name="Get User Time")
@@ -564,8 +559,6 @@ class Clocks(commands.Cog):
             else:
                 await ctx.send_followup(content="```"+chunk+"```", ephemeral=not _public, allowed_mentions=discord.AllowedMentions(users=False))
     
-    
-    
     #TODO condense this with slash command of same name
     @commands.user_command(name="Get User Sessions")
     @is_member()
@@ -594,7 +587,21 @@ class Clocks(commands.Cog):
     @is_admin()
     async def _admincommand(self, ctx):
         await ctx.send_response(content=f'You\'re an admin!')
-        
+    
+    @commands.user_command(name="Admin - Clockout")
+    @is_member()
+    async def _adminclockout(self, ctx, member: discord.Member):
+        res = await self._inner_clockout(ctx, member.id)
+        await ctx.send_response(content=res['content'])
+        if res['status'] == False:
+            return
+        bonus_sessions = await self.get_bonus_sessions(ctx.guild.id, res['record'], res['row'])
+        for item in bonus_sessions:
+            row = await db.store_new_historical(ctx.guild.id, item)
+            tot = await db.get_user_hours(ctx.guild.id, ctx.author.id)
+            await ctx.send_followup(content=f'{ctx.author.display_name} Obtained bonus hours, stored record #{row} for {item["_DEBUG_delta"]} hours. User total is at {round(tot, 2)}')
+        return
+    
     @commands.slash_command(name='admindirecturn', description='Admin command to directly urn a user')
     @is_admin()
     @is_member()
@@ -658,9 +665,8 @@ class Clocks(commands.Cog):
         was = {}
         if len(time) == 4:
             time = "0" + time
-        time += "-05:00"
         arg_date = datetime.date.fromisoformat(_date)
-        _datetime = com.datetime_combine(arg_date, datetime.time.fromisoformat(time))
+        _datetime = com.datetime_combine(arg_date, com.time_from_iso(time))
         if _type == 'Clock in time':
             was['timestamp'] = rec['in_timestamp']
             was['_DEBUG'] = rec['_DEBUG_in']
@@ -680,7 +686,6 @@ class Clocks(commands.Cog):
         res = await db.delete_historical_record(ctx.guild.id, row)
         res = await db.store_new_historical(ctx.guild.id, rec)
         await ctx.send_response(content=f'Updated record #{row}, {_type} from {was["_DEBUG"]} to {_datetime.isoformat()} for user <@{rec["user"]}>', allowed_mentions=discord.AllowedMentions(users=False))
-        
     
     @commands.slash_command(name='admindirectrecord', description='Admin command to add a historical record of a user')
     @is_admin()
@@ -767,8 +772,6 @@ class Clocks(commands.Cog):
     def get_config(self, guild_id):
         return json.load(open('data/config.json', 'r', encoding='utf-8')).get(str(guild_id))
     
-
-
 
 def setup(bot):
     cog = Clocks(bot)
