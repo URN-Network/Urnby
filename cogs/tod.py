@@ -28,8 +28,27 @@ class Tod(commands.Cog):
         if missing_tables:
             print(f"Warning, ToD reports missing the following tables in db: {missing_tables}")
     
-    @commands.slash_command(name='tod', description='Entered tod must be todays date, or using the optional daybefore parameter, yesterday')
-    async def _tod(self, ctx, 
+    @commands.slash_command(name='tod', description='Simplified tod, takes required parameter of minutes ago')
+    async def _tod(self, ctx, ago: discord.Option(int, name='minutes_ago', description="Minutes since tod, can be 0" , required=True)):
+        now = com.get_current_datetime()
+            
+        tod_datetime = now - datetime.timedelta(minutes=ago)
+            
+        rec = {
+               "mob": 'Drusella Sathir', 
+               "tod_timestamp": tod_datetime.timestamp(), 
+               "submitted_timestamp": now.timestamp(), 
+               "submitted_by_id": ctx.author.id,
+               "_DEBUG_submitted_datetime": now.isoformat(), 
+               "_DEBUG_submitted_by": ctx.author.display_name, 
+               "_DEBUG_tod_datetime": tod_datetime.isoformat(), 
+               }
+        row = await db.store_tod(ctx.guild.id, rec)
+        await ctx.send_response(content=f"Set tod at {rec['_DEBUG_tod_datetime']}, spawn will happen at {(tod_datetime+datetime.timedelta(days=1)).isoformat()}")
+        return
+        
+    @commands.slash_command(name='settod',  description='Entered tod must be todays date, or using the optional daybefore parameter, yesterday')
+    async def _settod(self, ctx, 
                        tod: discord.Option(str, name='tod', description="Use when time is not 'now' - 24hour clock time EST (ex 14:49)" , default='now'),
                        mobname: discord.Option(str, name='mobname', default='Drusella Sathir'),
                        daybefore: discord.Option(bool, name='daybefore', description='Use if the tod was actually yesterday',  default=False)):
