@@ -41,6 +41,27 @@ class CampQueue(commands.Cog):
         await db.store_command(guild_id, command)
         return
 
+    # ========================
+    #  Abstract away direct data access
+    # ========================
+    async def remove_rep(self, ctx, user_id):
+        return await db.remove_replacement(ctx.guild.id, user_id)
+
+    async def remove_reps(self, ctx, user_ids):
+        # TODO: Could do this in 1 sql command
+        # DELETE FROM reps WHERE user IN ({user_ids})
+        for user in user_ids:
+            self.remove_rep(ctx, user)
+
+    async def add_rep(self, ctx, rep):
+        return await db.add_replacement(ctx.guild.id, rep)
+
+    async def clear_reps(self, ctx):
+        return await db.clear_replacement_queue(ctx.guild.id)
+
+    async def get_older_reps_than_user(self, ctx, user_id) -> list:
+        reps = await db.get_replacements_before_user(ctx.guild.id, user_id)
+        return reps
 
     # ==============================================================================
     # Error Handlers
@@ -116,7 +137,7 @@ class CampQueue(commands.Cog):
             'in_timestamp': com.get_current_timestamp(),
         }
 
-        added = await db.add_replacement(ctx.guild.id, rep)
+        added = await self.add_rep(rep)
         if not added:
             await ctx.send_response(content=f'User is already in queue')
             return
@@ -130,7 +151,7 @@ class CampQueue(commands.Cog):
         userid, display_name = await get_userid_and_name(ctx, userid)
         if not userid:
             return
-        removed = await db.remove_replacement(ctx.guild.id, userid)
+        removed = await self.remove_rep(userid)
         if removed is None:
             await ctx.send_response(content=f'User is not in queue')
             return
@@ -144,7 +165,7 @@ class CampQueue(commands.Cog):
         userid, display_name = await get_userid_and_name(ctx, userid)
         if not userid:
             return
-        removed = await db.remove_replacement(ctx.guild.id, userid)
+        removed = await self.remove_rep(userid)
         if removed is None:
             await ctx.send_response(content=f'User is not in queue')
             return
@@ -157,7 +178,7 @@ class CampQueue(commands.Cog):
         userid, display_name = await get_userid_and_name(ctx, member.id)
         if not userid:
             return
-        removed = await db.remove_replacement(ctx.guild.id, userid)
+        removed = await self.remove_rep(userid)
         if removed is None:
             await ctx.send_response(content=f'User is not in queue')
             return
@@ -168,7 +189,7 @@ class CampQueue(commands.Cog):
     @is_admin()
     @is_command_channel()
     async def _adminrepclear(self, ctx):
-        res = await db.clear_replacement_queue(ctx.guild.id)
+        res = await self.clear_reps()
         if not res:
             await ctx.send_response(content=f'Problem occured while clearing camp queue.')
             return

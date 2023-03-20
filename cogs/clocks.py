@@ -33,6 +33,7 @@ class Clocks(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.state_lock = asyncio.Lock()
+        self.cq = self.bot.get_cog('CampQueue')
         print('Initilization on clocks complete', flush=True)
     
     
@@ -171,10 +172,15 @@ class Clocks(commands.Cog):
                 '_DEBUG_out': '',
                 '_DEBUG_delta': '',
             }
-        removed = await db.remove_replacement(ctx.guild.id, ctx.author.id)
+
+        older_reps = await cq.get_older_reps_than_user(ctx, ctx.author.id)
+        if older_reps:
+            await ctx.send_followup(f"There are older reps in list: {older_reps}")
+
+        rep_removed = await cq.remove_rep(ctx, ctx.author.id)
         
         content = f'{ctx.author.display_name} {com.scram("Successfully")} clocked in at <t:{doc["in_timestamp"]}:f>'
-        if removed is not None:
+        if rep_removed is not None:
             content += f' and was removed from replacement list'
         await db.store_active_record(ctx.guild.id, doc)
         await ctx.send_response(content=content)
