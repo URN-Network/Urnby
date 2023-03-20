@@ -326,7 +326,7 @@ async def get_replacement_queue(guild_id) -> list:
     res = []
     async with aiosqlite.connect('data/urnby.db') as db:
         db.row_factory = aiosqlite.Row
-        query = f"SELECT rowid, * FROM reps WHERE server = {guild_id} ORDER BY in_timestamp DESC"
+        query = f"SELECT rowid, * FROM reps WHERE server = {guild_id} ORDER BY in_timestamp"
         async with db.execute(query) as cursor:
             rows = await cursor.fetchall()
             res = [dict(row) for row in rows]
