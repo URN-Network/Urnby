@@ -143,7 +143,15 @@ async def get_all_actives(guild_id) -> list:
             res = [dict(row) for row in rows]
     return res
 
-# Returns None on user was already in active
+async def is_user_active(guild_id, user_id) -> bool:
+    async with aiosqlite.connect('data/urnby.db') as db:
+        db.row_factory = aiosqlite.Row
+        query = f"SELECT count(*) FROM active WHERE server = {guild_id} AND user = {user_id}"
+        async with db.execute(query) as cursor:
+            res = await cursor.fetchall()
+            return dict(res[0])['count(*)'] != 0
+
+# Returns None if user was already in active
 async def store_active_record(guild_id, record):
     guild_actives = await get_all_actives(str(guild_id))
     for item in guild_actives:
@@ -159,16 +167,15 @@ async def store_active_record(guild_id, record):
         await db.commit()
     return lastrow
 
-# Returns None on user not in active
+# Returns None if user not in active
 async def remove_active_record(guild_id, record):
     lastrow = 0
     async with aiosqlite.connect('data/urnby.db') as db:
         db.row_factory = aiosqlite.Row
-        query = f"""SELECT count(*) FROM active WHERE server = {guild_id} AND user = {record['user']}"""
-        async with db.execute(query) as cursor:
-            res = await cursor.fetchall()
-            if dict(res[0])['count(*)'] == 0:
-                return None
+
+        if not await is_user_active(guild_id, record['user']):
+            return None
+
         query = f"""DELETE FROM active WHERE server = {guild_id} AND user = {record['user']}"""
         async with db.execute(query) as cursor:
             lastrow = cursor.lastrowid
@@ -370,6 +377,33 @@ async def clear_replacement_queue(guild_id):
             lastrow = cursor.lastrowid
         await db.commit()
     return lastrow
+
+async def get_replacement(guild_id, user_id):
+    res = {}
+    async with aiosqlite.connect('data/urnby.db') as db:
+        db.row_factory = aiosqlite.Row
+        query = f"SELECT * FROM reps WHERE server = {guild_id} AND user = {user_id}"
+        async with db.execute(query) as cursor:
+            rows = await cursor.fetchall()
+            if len(rows) < 1:
+                return None
+            res = dict(rows[0])
+    return res
+
+async def get_replacements_before_user(guild_id, user_id) -> list:
+
+    rep = await get_replacement(guild_id, user_id)
+    if not rep:
+        return None
+    
+    res = []
+    async with aiosqlite.connect('data/urnby.db') as db:
+        db.row_factory = aiosqlite.Row
+        query = f"""SELECT * FROM reps WHERE server = {guild_id} AND in_timestamp<{rep['in_timestamp']}"""
+        async with db.execute(query) as cursor:
+            rows = await cursor.fetchall()
+            res = [dict(row) for row in rows]
+    return res
 
     # ==============================================================================
     # Misc
