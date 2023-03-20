@@ -137,7 +137,11 @@ class CampQueue(commands.Cog):
             'in_timestamp': com.get_current_timestamp(),
         }
 
-        added = await self.add_rep(rep)
+        if await db.is_user_active(ctx.guild.id, userid):
+            await ctx.send_response(content=f'User is already clocked in')
+            return
+        
+        added = await self.add_rep(ctx, rep)
         if not added:
             await ctx.send_response(content=f'User is already in queue')
             return
@@ -151,7 +155,7 @@ class CampQueue(commands.Cog):
         userid, display_name = await get_userid_and_name(ctx, userid)
         if not userid:
             return
-        removed = await self.remove_rep(userid)
+        removed = await self.remove_rep(ctx, userid)
         if removed is None:
             await ctx.send_response(content=f'User is not in queue')
             return
@@ -165,7 +169,7 @@ class CampQueue(commands.Cog):
         userid, display_name = await get_userid_and_name(ctx, userid)
         if not userid:
             return
-        removed = await self.remove_rep(userid)
+        removed = await self.remove_rep(ctx, userid)
         if removed is None:
             await ctx.send_response(content=f'User is not in queue')
             return
@@ -178,7 +182,7 @@ class CampQueue(commands.Cog):
         userid, display_name = await get_userid_and_name(ctx, member.id)
         if not userid:
             return
-        removed = await self.remove_rep(userid)
+        removed = await self.remove_rep(ctx, userid)
         if removed is None:
             await ctx.send_response(content=f'User is not in queue')
             return

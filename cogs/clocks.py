@@ -33,7 +33,6 @@ class Clocks(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.state_lock = asyncio.Lock()
-        self.cq = self.bot.get_cog('CampQueue')
         print('Initilization on clocks complete', flush=True)
     
     
@@ -42,6 +41,7 @@ class Clocks(commands.Cog):
         missing_tables = await db.check_tables(['historical', 'session', 'session_history', 'active', 'commands'])
         if missing_tables:
             print(f"Warning, missing the following tables in db: {missing_tables}")
+        self.cq = self.bot.get_cog('CampQueue')
     
     async def cog_before_invoke(self, ctx):
         guild_id = 0
@@ -173,11 +173,8 @@ class Clocks(commands.Cog):
                 '_DEBUG_delta': '',
             }
 
-        older_reps = await cq.get_older_reps_than_user(ctx, ctx.author.id)
-        if older_reps:
-            await ctx.send_followup(f"There are older reps in list: {older_reps}")
-
-        rep_removed = await cq.remove_rep(ctx, ctx.author.id)
+        older_reps = await self.cq.get_older_reps_than_user(ctx, ctx.author.id)
+        rep_removed = await self.cq.remove_rep(ctx, ctx.author.id)
         
         content = f'{ctx.author.display_name} {com.scram("Successfully")} clocked in at <t:{doc["in_timestamp"]}:f>'
         if rep_removed is not None:
@@ -185,6 +182,11 @@ class Clocks(commands.Cog):
         await db.store_active_record(ctx.guild.id, doc)
         await ctx.send_response(content=content)
         
+        if older_reps:
+            for rep in older_reps:
+                await self.cq.remove_rep(ctx, rep['user'])
+            await ctx.send_followup(f"Removed older reps: {older_reps}")
+
         config = self.get_config(ctx.guild.id)
         if 'max_active' in config.keys() and config['max_active'] < len(actives)+1:
             actives = await db.get_all_actives(ctx.guild.id)
