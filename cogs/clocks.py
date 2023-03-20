@@ -183,9 +183,11 @@ class Clocks(commands.Cog):
         await ctx.send_response(content=content)
         
         if older_reps:
+            content = f'Removing these replacements which are OLDER than this replacement:'
             for rep in older_reps:
                 await self.cq.remove_rep(ctx, rep['user'])
-            await ctx.send_followup(f"Removed older reps: {older_reps}")
+                content += f'\n<@{rep["user"]}>'
+            await ctx.send_followup(content=content)
 
         config = self.get_config(ctx.guild.id)
         if 'max_active' in config.keys() and config['max_active'] < len(actives)+1:
