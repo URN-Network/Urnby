@@ -186,7 +186,7 @@ class Clocks(commands.Cog):
             content = f'Removing these replacements which are OLDER than this replacement:'
             for rep in older_reps:
                 await self.cq.remove_rep(ctx, rep['user'])
-                content += f'\n<@{rep["user"]}>'
+                content += f'\n<@{rep["user"]}> @ {com.datetime_from_timestamp(rep["in_timestamp"]).isoformat()}'
             await ctx.send_followup(content=content)
 
         config = self.get_config(ctx.guild.id)
