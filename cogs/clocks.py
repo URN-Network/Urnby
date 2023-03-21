@@ -424,10 +424,21 @@ class Clocks(commands.Cog):
         res = await db.get_users_hours(ctx.guild.id, users)
         
         sorted_res = sorted(res, key= lambda user: user['total'], reverse=True)
+        content_container = []
         content = '_ _\nUsers sorted by total time:'
-        for item in sorted_res:
-            content += f'\n<@{item["user"]}> has {item["total"]:.2f}'
-        await ctx.send_response(content=content, ephemeral=not public, allowed_mentions=discord.AllowedMentions(users=False))
+        for idx, item in enumerate(sorted_res):
+            content += f'\n#{idx+1} <@{item["user"]}> has {item["total"]:.2f}'
+            if len(content) >= 1850:
+                clip_idx = content.rfind('\n', 0, 1850)
+                content_container.append(content[:clip_idx])
+                content = '_ _'+content[clip_idx:]
+        if sorted_res:
+            content_container.append(content)
+        
+        await ctx.send_response(content=content_container[0], ephemeral=not public, allowed_mentions=discord.AllowedMentions(users=False))
+        if len(content_container) > 1:
+            for idx in range(1, len(content_container)):
+                await ctx.send_followup(content=content_container[idx], ephemeral=not public, allowed_mentions=discord.AllowedMentions(users=False))
         return
     
     @commands.slash_command(name='urn', description='For use when you have obtained an urn')
@@ -581,10 +592,7 @@ class Clocks(commands.Cog):
             # Max message length is 2000, give 100 leway for title/user hours ending
             if len(content) >= 1850:
                 clip_idx = content.rfind('\n', 0, 1850)
-                if len(chunks) == 0:
-                    chunks.append(content[:clip_idx])
-                else:
-                    chunks.append(content[:clip_idx])
+                chunks.append(content[:clip_idx])
                 content = content[clip_idx:]
         
         tot = await db.get_user_hours(ctx.guild.id, userid)

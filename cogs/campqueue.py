@@ -160,7 +160,8 @@ class CampQueue(commands.Cog):
             await ctx.send_response(content=f'User is not in queue')
             return
         await ctx.send_response(content=f'{display_name} Successfully removed from replacement queue')    
-        
+    
+    '''
     @commands.slash_command(name='admin_repremove')
     @is_admin()
     @is_command_channel()
@@ -187,7 +188,7 @@ class CampQueue(commands.Cog):
             await ctx.send_response(content=f'User is not in queue')
             return
         await ctx.send_response(content=f'{display_name} Successfully removed from replacement queue')   
-    
+    '''
     
     @commands.slash_command(name='admin_repclear')
     @is_admin()
