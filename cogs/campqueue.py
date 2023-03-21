@@ -1,5 +1,6 @@
 # Builtin
 import datetime
+from enum import Enum
 
 # External
 import discord
@@ -14,6 +15,12 @@ from checks.IsMemberVisible import is_member_visible, NotMemberVisible
 from checks.IsMember import is_member, NotMember
 from checks.IsInDev import is_in_dev, InDevelopment
 
+class MemberQueryResult(Enum):
+    FOUND = 1
+    ID_NOT_FOUND = 2
+    NOT_UNIQUE = 3
+    UNKNOWN_PARAMETER = 4
+    QUERY_FAILED = 5
 
 class CampQueue(commands.Cog):
     
@@ -199,7 +206,7 @@ class CampQueue(commands.Cog):
             await ctx.send_response(content=f'Problem occured while clearing camp queue.')
             return
         await ctx.send_response(content=f'Camp Queue cleared.')
-        
+'''
 async def get_userid_and_name(ctx, userid):
     if not userid:
         userid = ctx.author.id
@@ -214,6 +221,36 @@ async def get_userid_and_name(ctx, userid):
             return None, None
             
     return userid, display_name
+'''
+async def get_userid_and_name(ctx, param) -> int:
+    # Try userid for int interpretation
+    ret = {'result': None, 'type': MemberQueryResult.QUERY_FAILED}
+    try:
+        int(param)
+        res = await ctx.guild.fetch_member(int(param))
+        ret = {'result': res, 'type': MemberQueryResult.FOUND}
+    except ValueError as err:
+        # Failed int parsing
+        pass 
+    except discord.errors.NotFound:
+        ret = {'result': None, 'type': MemberQueryResult.ID_NOT_FOUND}
+    
+    # try querying string for member
+    try:
+        res = await ctx.guild.query_members(query=param, limit=2)
+        if len(res) == 0:
+            ret = {'result': None, 'type': MemberQueryResult.ID_NOT_FOUND}
+        elif len(res) == 1:
+            ret = {'result': res[0], 'type': MemberQueryResult.FOUND}
+        else:
+            ret = {'result': None, 'type': MemberQueryResult.NOT_UNIQUE}
+    except Exeption as err:
+        pass
+    
+    if ret['result'] is None:
+        await ctx.send_response(content=f"userid '{param}' couldnt be found, returned {ret['type']}", ephemeral=True)
+        return None, None
+    return ret['result'].id, ret['result'].display_name
 
 def setup(bot):
     bot.add_cog(CampQueue(bot))
