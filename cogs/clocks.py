@@ -179,7 +179,7 @@ class Clocks(commands.Cog):
                 '_DEBUG_out': '',
                 '_DEBUG_delta': '',
             }
-
+        content = ''
         older_reps = await self.cq.get_older_reps_than_user(ctx, ctx.author.id)
         if older_reps:
             view = SkipQueueView()
@@ -193,15 +193,16 @@ class Clocks(commands.Cog):
                 for rep in older_reps:
                     await self.cq.remove_rep(ctx, rep['user'])
                     content += f'\n<@{rep["user"]}> @ {com.datetime_from_timestamp(rep["in_timestamp"]).isoformat()}'
-                await ctx.send_followup(content=content)
+                
+                content += '\n'
                 
         rep_removed = await self.cq.remove_rep(ctx, ctx.author.id)
         
-        content = f'{ctx.author.display_name} {com.scram("Successfully")} clocked in at <t:{doc["in_timestamp"]}:f>'
+        content += f'{ctx.author.display_name} {com.scram("Successfully")} clocked in at <t:{doc["in_timestamp"]}:f>'
         if rep_removed is not None:
             content += f' and was removed from replacement list'
         await db.store_active_record(ctx.guild.id, doc)
-        await ctx.send_followup(content=content)
+        await ctx.send_response(content=content)
         
         config = self.get_config(ctx.guild.id)
         if 'max_active' in config.keys() and config['max_active'] < len(actives)+1:
@@ -404,6 +405,7 @@ class Clocks(commands.Cog):
                 
                 await db.store_historical_session(ctx.guild.id, session)
                 await db.delete_session(ctx.guild.id)
+                await db.clear_replacement_queue(ctx.guild.id)
             else:
                 content=f'Sorry there is no current session to end'
         finally:
@@ -815,23 +817,24 @@ async def check_user_id(ctx, param) -> int:
         int(param)
         res = await ctx.guild.fetch_member(int(param))
         ret = {'result': res, 'type': MemberQueryResult.FOUND}
-    except ValueError as err:
+    except (ValueError, TypeError) as err:
         # Failed int parsing
         pass 
     except discord.errors.NotFound:
         ret = {'result': None, 'type': MemberQueryResult.ID_NOT_FOUND}
     
-    # try querying string for member
-    try:
-        res = await ctx.guild.query_members(query=param, limit=2)
-        if len(res) == 0:
-            ret = {'result': None, 'type': MemberQueryResult.ID_NOT_FOUND}
-        elif len(res) == 1:
-            ret = {'result': res[0], 'type': MemberQueryResult.FOUND}
-        else:
-            ret = {'result': None, 'type': MemberQueryResult.NOT_UNIQUE}
-    except Exeption as err:
-        pass
+    if not ret['result']:
+        # try querying string for member
+        try:
+            res = await ctx.guild.query_members(query=param, limit=2)
+            if len(res) == 0:
+                ret = {'result': None, 'type': MemberQueryResult.ID_NOT_FOUND}
+            elif len(res) == 1:
+                ret = {'result': res[0], 'type': MemberQueryResult.FOUND}
+            else:
+                ret = {'result': None, 'type': MemberQueryResult.NOT_UNIQUE}
+        except Exception as err:
+            pass
     
     if ret['result'] is None:
         await ctx.send_response(content=f"userid '{param}' couldnt be found, returned {ret['type']}", ephemeral=True)

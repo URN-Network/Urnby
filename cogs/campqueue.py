@@ -135,6 +135,8 @@ class CampQueue(commands.Cog):
     @is_member()
     @is_command_channel()
     async def _repadd(self, ctx, userid: discord.Option(str, name="userid", default = None, required=False)):
+        if userid is None:
+            userid = ctx.author.id
         userid, display_name = await get_userid_and_name(ctx, userid)
         if not userid:
             return
@@ -145,12 +147,12 @@ class CampQueue(commands.Cog):
         }
 
         if await db.is_user_active(ctx.guild.id, userid):
-            await ctx.send_response(content=f'User is already clocked in')
+            await ctx.send_response(content=f'{display_name} is already clocked in')
             return
         
         added = await self.add_rep(ctx, rep)
         if not added:
-            await ctx.send_response(content=f'User is already in queue')
+            await ctx.send_response(content=f'{display_name} is already in queue')
             return
         await ctx.send_response(content=f'{display_name} Successfully added to replacement queue')
         
@@ -159,6 +161,8 @@ class CampQueue(commands.Cog):
     @is_member()
     @is_command_channel()
     async def _repremove(self, ctx, userid: discord.Option(str, name="userid", default = None, required=False)):
+        if userid is None:
+            userid = ctx.author.id
         userid, display_name = await get_userid_and_name(ctx, userid)
         if not userid:
             return
@@ -229,24 +233,23 @@ async def get_userid_and_name(ctx, param) -> int:
         int(param)
         res = await ctx.guild.fetch_member(int(param))
         ret = {'result': res, 'type': MemberQueryResult.FOUND}
-    except ValueError as err:
+    except (ValueError, TypeError) as err:
         # Failed int parsing
         pass 
     except discord.errors.NotFound:
         ret = {'result': None, 'type': MemberQueryResult.ID_NOT_FOUND}
-    
-    # try querying string for member
-    try:
-        res = await ctx.guild.query_members(query=param, limit=2)
-        if len(res) == 0:
-            ret = {'result': None, 'type': MemberQueryResult.ID_NOT_FOUND}
-        elif len(res) == 1:
-            ret = {'result': res[0], 'type': MemberQueryResult.FOUND}
-        else:
-            ret = {'result': None, 'type': MemberQueryResult.NOT_UNIQUE}
-    except Exeption as err:
-        pass
-    
+    if not ret['result']:
+        # try querying string for member
+        try:
+            res = await ctx.guild.query_members(query=param, limit=2)
+            if len(res) == 0:
+                ret = {'result': None, 'type': MemberQueryResult.ID_NOT_FOUND}
+            elif len(res) == 1:
+                ret = {'result': res[0], 'type': MemberQueryResult.FOUND}
+            else:
+                ret = {'result': None, 'type': MemberQueryResult.NOT_UNIQUE}
+        except Exception as err:
+            pass
     if ret['result'] is None:
         await ctx.send_response(content=f"userid '{param}' couldnt be found, returned {ret['type']}", ephemeral=True)
         return None, None
