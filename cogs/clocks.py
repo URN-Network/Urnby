@@ -183,17 +183,23 @@ class Clocks(commands.Cog):
         older_reps = await self.cq.get_older_reps_than_user(ctx, ctx.author.id)
         if older_reps:
             view = SkipQueueView()
-            await ctx.respond("There are members ahead of you in the rep queue, are you sure you want to remove them from the queue and skip to clockin?", view=view)
+            await ctx.send_response("There are members ahead of you in the rep queue, are you sure you want to remove them from the queue and skip to clockin?", view=view)
             await view.wait()
             if view.result == False:
                 # Time out
                 return
             elif view.result == True:
+                '''
                 content = f'Removing these replacements which are OLDER than this replacement:'
                 for rep in older_reps:
                     await self.cq.remove_rep(ctx, rep['user'])
                     content += f'\n<@{rep["user"]}> @ {com.datetime_from_timestamp(rep["in_timestamp"]).isoformat()}'
                 
+                content += '\n'
+                '''
+                content += f'Skipping {len(older_reps)} replacements and clocking {ctx.author.display_name} in. Alerting queuers to adjust their status: '
+                for rep in older_reps:
+                    content += f'<@{rep["user"]}> '
                 content += '\n'
                 
         rep_removed = await self.cq.remove_rep(ctx, ctx.author.id)
@@ -201,8 +207,12 @@ class Clocks(commands.Cog):
         content += f'{ctx.author.display_name} {com.scram("Successfully")} clocked in at <t:{doc["in_timestamp"]}:f>'
         if rep_removed is not None:
             content += f' and was removed from replacement list'
+        
         await db.store_active_record(ctx.guild.id, doc)
-        await ctx.send_response(content=content)
+        try:
+            await ctx.send_response(content=content)
+        except (discord.errors.InteractionResponded, RuntimeError):
+            await ctx.send_followup(content=content)
         
         config = self.get_config(ctx.guild.id)
         if 'max_active' in config.keys() and config['max_active'] < len(actives)+1:

@@ -18,9 +18,6 @@ class SkipQueueView(discord.ui.View):
         
     @discord.ui.button(label='Yes', style=discord.ButtonStyle.primary)
     async def accept_button_callback(self, button, interaction):
-        #TODO check and ensure these are the same and other users cant click the button
-        print(interaction.user.id)
-        print(self.message.interaction.user.id) 
         if interaction.user.id == self.message.interaction.user.id:
             for child in self.children:
                 child.disabled = True

@@ -87,7 +87,7 @@ class Channel_Stats(commands.Cog):
                             channel = g_chan
                     if not channel:
                         continue
-                    print(f'setting channel {channel.name} to {name}')
+                    print(f'{com.get_current_iso()} [{guild.id}] - Setting channel {channel.name} to {name}')
                     await channel.edit(name=name)
                 
             now = com.get_current_datetime()
@@ -100,7 +100,7 @@ class Channel_Stats(commands.Cog):
                 if mins_till_ds < 0:
                     mins_till_ds_str = "Unknown ToD"
                 else:
-                    mins_till_ds_str = f'{mins_till_ds:4}mins'
+                    mins_till_ds_str = f'DS in: {mins_till_ds:4}mins'
             channel = None
             if config.get('countdown_stats'):
                 channel = next((c for c in guild.channels if c.id == config['countdown_stats']), None)
@@ -109,11 +109,11 @@ class Channel_Stats(commands.Cog):
                     await channel.edit(name=mins_till_ds_str)
             channel = None
             if config.get('campstatus_stats'):
-                _open = "Status: <CLOSED"
+                _open = "<CLOSED"
                 if mins_till_ds >= 0 and mins_till_ds <= com.MINUTE_IN_HOUR * CAMP_HOURS_TILL_DS:
-                    _open = "Status: <OPEN"
+                    _open = "<OPEN"
                 if mins_till_ds < 0:
-                    _open = "Status: <UNKNOWN"
+                    _open = "<UNKNOWN"
                 ses = await db.get_session(guild.id)
                 if ses:
                     _open += "+ACTIVE"                
@@ -134,7 +134,7 @@ class Channel_Stats(commands.Cog):
                     s += f'+{len(reps)}'
                 channel = next((c for c in guild.channels if c.id == config['active_stats']), None)
                 if channel and channel.name != s and channel.permissions_for(guild.get_member(self.bot.user.id)).manage_channels:
-                    print(f'setting channel {channel.name} to {_open}')
+                    print(f'setting channel {channel.name} to {s}')
                     await channel.edit(name=s)
             
 
