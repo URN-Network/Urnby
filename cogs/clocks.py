@@ -10,6 +10,7 @@ from pathlib import Path
 import discord
 from discord.ext import commands
 from aiosqlite import OperationalError
+from pycord.multicog import add_to_group
 
 # Internal
 import data.databaseapi as db
@@ -38,11 +39,15 @@ class MemberQueryResult(Enum):
     
 
 class Clocks(commands.Cog):
-    
     def __init__(self, bot):
         self.bot = bot
         self.state_lock = asyncio.Lock()
+        
         print('Initilization on clocks complete', flush=True)
+        
+    admin_group = discord.commands.SlashCommandGroup('admin')
+    get_group = discord.commands.SlashCommandGroup('get')
+    session_group = discord.commands.SlashCommandGroup('session')
     
     @commands.Cog.listener()
     async def on_ready(self):
@@ -121,7 +126,7 @@ class Clocks(commands.Cog):
     # All User Commands
     # ============================================================================== 
 
-    @commands.slash_command(name='getconfig', description='Ephemeral optional - Get bot configuration')
+    @get_group.command(name='config', description='Ephemeral optional - Get bot configuration')
     async def _get_config(self, ctx, public: discord.Option(bool, name='public', default=False)):
         if ctx.guild is None:
             await ctx.send_response(content='This command can not be used in Direct Messages')
@@ -132,7 +137,7 @@ class Clocks(commands.Cog):
     # ==============================================================================
     # Activity Commands
     # ==============================================================================
-    @commands.slash_command(name='getactive', description='Ephemeral optional - Get list of active users in the session')
+    @get_group.command(name='active', description='Ephemeral optional - Get list of active users in the session')
     @is_member()
     async def _get_active(self, ctx, public: discord.Option(bool, name='public', default=False)):
         actives = await db.get_all_actives(ctx.guild.id)
@@ -329,7 +334,7 @@ class Clocks(commands.Cog):
     # ==============================================================================
     # Session Commands
     # ==============================================================================
-    @commands.slash_command(name='getsession', description='Ephemeral - Get information about the active session')
+    @get_group.command(name='session', description='Ephemeral - Get information about the active session')
     @is_member()
     async def _getsession(self, ctx):
         session = await db.get_session(ctx.guild.id)
@@ -342,7 +347,7 @@ class Clocks(commands.Cog):
         await ctx.send_response(content=content, ephemeral=True)
         return
     
-    @commands.slash_command(name='sessionstart', description='Start an session, only one session is allowed at a time')
+    @session_group.command(name='start', description='Start an session, only one session is allowed at a time')
     @is_member()
     @is_member_visible()
     @is_command_channel()
@@ -375,7 +380,7 @@ class Clocks(commands.Cog):
             self.state_lock.release()
         await ctx.send_response(content=content)
     
-    @commands.slash_command(name='sessionend', description='Ends active session, clocking out all active users in the process')
+    @session_group.command(name='end', description='Ends active session, clocking out all active users in the process')
     @is_member()
     @is_member_visible()
     @is_command_channel()
@@ -407,7 +412,7 @@ class Clocks(commands.Cog):
                     for item in bonus_sessions:
                         row = await db.store_new_historical(ctx.guild.id, item)
                         close_outs.append((item['_DEBUG_user_name'], f'Bonus id#{row}', item['_DEBUG_delta']))
-                content = f'Session, {session["session"]} ended and lasted {session["_DEBUG_delta"]} hours'
+                content = f'Session, "{session["session"]}" ended and lasted {session["_DEBUG_delta"]} hours'
                 if close_outs:       
                     content += f'\nAutomagically closed out {close_outs}'
                 if fails:
@@ -498,7 +503,7 @@ class Clocks(commands.Cog):
             return
     
     # return last # commands
-    @commands.slash_command(name='getcommands', description='Ephemeral - Get a list of historical commands submitted to the bot by a user')
+    @get_group.command(name='commands', description='Ephemeral - Get a list of historical commands submitted to the bot by a user')
     @is_member()
     async def _get_commands(self, ctx, 
                             _id: discord.Option(str, name="user_id", default=None),
@@ -558,10 +563,11 @@ class Clocks(commands.Cog):
     @commands.user_command(name="Get User Time")
     @is_member()
     async def _get_user_time(self, ctx, member: discord.Member):
-        tot = await db.get_user_hours(ctx.guild.id, member.id)
-        await ctx.send_response(content=f'{member.display_name} has accrued {tot:.2f} hours', ephemeral=True)
+        secs = await db.get_user_seconds(ctx.guild.id, userid)
+        tot = com.get_hours_from_secs(secs)
+        await ctx.send_response(content=f'{member.display_name} has accrued {tot:.2f} hours. ({secs} seconds)', ephemeral=True)
     
-    @commands.slash_command(name="getusersessions", description='Ephemeral - Get list of user\'s historical sessions')
+    @get_group.command(name="usersessions", description='Ephemeral - Get list of user\'s historical sessions')
     @is_member()
     async def _cmd_get_user_sessions(self, ctx, 
                                     _id: discord.Option(str, name="user_id", default=None),
@@ -607,8 +613,9 @@ class Clocks(commands.Cog):
                 chunks.append(content[:clip_idx])
                 content = content[clip_idx:]
         
-        tot = await db.get_user_hours(ctx.guild.id, userid)
-        tail = f"\n<@{userid}> has accrued {tot} hours"        
+        secs = await db.get_user_seconds(ctx.guild.id, userid)
+        tot = com.get_hours_from_secs(secs)
+        tail = f"\n<@{userid}> has accrued {tot} hours. ({secs} seconds)"        
         if res:
             chunks.append(content)
         
@@ -629,7 +636,7 @@ class Clocks(commands.Cog):
     async def _get_user_sessions(self, ctx, member: discord.Member):
         await self._cmd_get_user_sessions(ctx, member.id, "Hours", False)
         return
-    
+    '''
     @commands.slash_command(name="getuserseconds", description='Get total number of seconds that a user has accrued')
     @is_member()
     async def _get_user_seconds(self, ctx,  _id: discord.Option(str, name="user_id", default='')):
@@ -642,17 +649,16 @@ class Clocks(commands.Cog):
         
         secs = await db.get_user_seconds(ctx.guild.id, userid)
         await ctx.send_response(content=f'<@{userid}> has {secs}', ephemeral=True)
-        
+    '''
     # ==============================================================================
     # Admin functions
     # ==============================================================================   
-    @commands.slash_command(name="admincommand", description='Command to confirm the user is an admin')
+    @admin_group.command(name="testcommand", description='Command to confirm the user is an admin')
     @is_admin()
     async def _admincommand(self, ctx):
         await ctx.send_response(content=f'You\'re an admin!')
     
-    
-    @commands.slash_command(name='admindirecturn', description='Admin command to directly urn a user')
+    @admin_group.command(name='directurn', description='Admin command to directly urn a user')
     @is_admin()
     @is_member()
     @is_member_visible()
@@ -693,8 +699,8 @@ class Clocks(commands.Cog):
         tot = await db.get_user_hours(ctx.guild.id, int(userid))
         
         await ctx.send_response(content=f'{username} - <@{int(userid)}> {com.scram("Successfully")} URNed and stored record #{res} for {doc["_DEBUG_delta"]} hours. Total is at {tot}')
-        
-    @commands.slash_command(name='adminchangehistory', description='Admin command to change a historical record of a user')
+    
+    @admin_group.command(name='changehistory', description='Admin command to change a historical record of a user')
     @is_admin()
     @is_member()
     @is_member_visible()
@@ -735,7 +741,7 @@ class Clocks(commands.Cog):
         res = await db.store_new_historical(ctx.guild.id, rec)
         await ctx.send_response(content=f'Updated record #{row}, {_type} from {was["_DEBUG"]} to {_datetime.isoformat()} for user <@{rec["user"]}>', allowed_mentions=discord.AllowedMentions(users=False))
     
-    @commands.slash_command(name='admindirectrecord', description='Admin command to add a historical record of a user')
+    @admin_group.command(name='directrecord', description='Admin command to add a historical record of a user')
     @is_admin()
     @is_member()
     @is_member_visible()
@@ -791,7 +797,7 @@ class Clocks(commands.Cog):
     # Data functions
     # ==============================================================================
     
-    @commands.slash_command(name='getdata', description='Command to retrive all data of a table')
+    @get_group.command(name='data', description='Command to retrive all data of a table')
     @is_member()
     async def _getdata(self, ctx, data_type=discord.Option(name='datatype', choices=['actives','historical','session', 'historicalsession', 'commands', 'errors'], default='historical')):
         res = await db.flush_wal()

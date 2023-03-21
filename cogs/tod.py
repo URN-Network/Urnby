@@ -5,6 +5,7 @@ import json
 # External
 import discord
 from discord.ext import commands
+from pycord.multicog import add_to_group
 
 # Internal
 import static.common as com
@@ -78,13 +79,17 @@ class Tod(commands.Cog):
         row = await db.store_tod(ctx.guild.id, rec)
         await ctx.send_response(content=f"Set tod at {rec['_DEBUG_tod_datetime']}, spawn will happen at {(tod_datetime+datetime.timedelta(days=1)).isoformat()}")
         return
-        
-    @commands.slash_command(name='gettod')
+    
+    @add_to_group('get')
+    @commands.slash_command(name='tod')
     async def _get_tod(self, ctx):
         rec = await db.get_tod(ctx.guild.id)
         now = com.get_current_datetime()
-        hours_till = com.get_hours_from_secs((datetime_from_iso(rec['tod_timestamp'])+datetime.timedelta(days=1)).timestamp() - now.timestamp())
-        await ctx.send_response(content=f"ToD was {rec['_DEBUG_tod_datetime']} {rec['mob']} will spawn in {hours_till} hours", ephemeral=True)
+        hours_till = com.get_hours_from_secs((com.datetime_from_timestamp(rec['tod_timestamp'])+datetime.timedelta(days=1)).timestamp() - now.timestamp())
+        if not hours_till:
+            await ctx.send_response(content=f"Last ToD was {rec['_DEBUG_tod_datetime']} unknown upcoming spawn", ephemeral=True)
+            return
+        await ctx.send_response(content=f"Last ToD was {rec['_DEBUG_tod_datetime']} {rec['mob']} will spawn in {hours_till} hours", ephemeral=True)
 
 async def time_delta_to_minutes(delta:datetime.timedelta) -> float:
     secs = delta.total_seconds()

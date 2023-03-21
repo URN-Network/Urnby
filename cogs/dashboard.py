@@ -54,6 +54,7 @@ class Dashboard(commands.Cog):
         self.printer.stop()
         print('Dashboard update stopped', flush=True)
     
+    '''
     @commands.slash_command(name="dashboardtimeleft")
     @is_member()
     @is_command_channel()
@@ -75,6 +76,7 @@ class Dashboard(commands.Cog):
             self.delay[ctx.guild.id] = False
         await self._purge_dashboard(ctx.guild)
         await ctx.send_response(f"Enabling refresh for the next dashboard update")
+    '''
     
     async def _purge_dashboard(self, guild):
         def chk(msg):

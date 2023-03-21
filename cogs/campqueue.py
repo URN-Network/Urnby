@@ -5,6 +5,7 @@ from enum import Enum
 # External
 import discord
 from discord.ext import commands
+from pycord.multicog import add_to_group
 
 # Internal
 import data.databaseapi as db
@@ -27,7 +28,9 @@ class CampQueue(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         print('Initilization on campqueue complete')
-
+    
+    rep_group = discord.commands.SlashCommandGroup('rep')
+    
     @commands.Cog.listener()
     async def on_connect(self):
         print(f'campqueue connected to discord')
@@ -114,7 +117,8 @@ class CampQueue(commands.Cog):
             raise error
         return
 
-    @commands.slash_command(name='getreps', description='Display current list of replacements')
+    @add_to_group('get')
+    @commands.slash_command(name='reps', description='Display current list of replacements')
     @is_member()
     async def _getreps(self, ctx, public: discord.Option(bool, name='public', default=False)):
         if ctx.guild is None:
@@ -130,8 +134,8 @@ class CampQueue(commands.Cog):
         if not reps:
             content = 'There are no replacements available'
         await ctx.send_response(content=content, ephemeral=not public, allowed_mentions=discord.AllowedMentions(users=False))
-
-    @commands.slash_command(name='repadd', description='Add yourself to the replacement list (FIFO)')
+    
+    @rep_group.command(name='add', description='Add yourself to the replacement list (FIFO)')
     @is_member()
     @is_command_channel()
     async def _repadd(self, ctx, userid: discord.Option(str, name="userid", default = None, required=False)):
@@ -145,6 +149,10 @@ class CampQueue(commands.Cog):
             'name': display_name,
             'in_timestamp': com.get_current_timestamp(),
         }
+        
+        if not await db.get_session(ctx.guild.id):
+            await ctx.send_response(content=f'There is no session to queue up for')
+            return
 
         if await db.is_user_active(ctx.guild.id, userid):
             await ctx.send_response(content=f'{display_name} is already clocked in')
@@ -157,7 +165,7 @@ class CampQueue(commands.Cog):
         await ctx.send_response(content=f'{display_name} Successfully added to replacement queue')
         
     
-    @commands.slash_command(name='repremove', description='Remove yourself from the replacement list')
+    @rep_group.command(name='remove', description='Remove yourself from the replacement list')
     @is_member()
     @is_command_channel()
     async def _repremove(self, ctx, userid: discord.Option(str, name="userid", default = None, required=False)):
@@ -200,8 +208,8 @@ class CampQueue(commands.Cog):
             return
         await ctx.send_response(content=f'{display_name} Successfully removed from replacement queue')   
     '''
-    
-    @commands.slash_command(name='admin_repclear')
+    @add_to_group('admin')
+    @commands.slash_command(name='repclear')
     @is_admin()
     @is_command_channel()
     async def _adminrepclear(self, ctx):

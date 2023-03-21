@@ -6,6 +6,7 @@ import time
 # External
 import discord
 from discord.ext import commands
+from pycord.multicog import add_to_group
 
 # Internal
 import data.databaseapi as db
@@ -85,7 +86,7 @@ class Misc(commands.Cog):
         await ctx.send_response(f'<@{member.id}> is ID - {member.id}', ephemeral=True, allowed_mentions=discord.AllowedMentions(users= False)) 
         return
                 
-        
+    '''    
     @commands.slash_command(name="ownerdelmsg", description="Owner command, must be ran in channel where message is to be deleted")
     @commands.is_owner()
     async def _del(self, ctx, messageid: discord.Option(str, name='messageid', required=True)):
@@ -95,13 +96,15 @@ class Misc(commands.Cog):
             await msg.delete()
             res = "Succeeded"
         await ctx.send_response(f"Deletion of msgid {messageid} was {res}", ephemeral=True)
-        
+    '''
+    '''
     @commands.slash_command(name="initdb", description="Owner command, initialize db tables")
     @commands.is_owner()
     async def _init_db(self, ctx):
         await db.init_database()
         await ctx.send_response(content=f"Database initialized")
-
+    '''
+    @add_to_group('admin')
     @commands.slash_command(name='configadd')
     @is_admin()
     async def _add_config(self, ctx, 
@@ -115,7 +118,8 @@ class Misc(commands.Cog):
             guild_config[_key].append(int(_value))
         save_guild_config(str(ctx.guild.id), guild_config)
         await ctx.send_response(content=f"Config item set - {_key} = {guild_config[_key]}")
-            
+    
+    @add_to_group('admin')
     @commands.slash_command(name='configaddbonushours')
     @is_admin()
     async def _add_config_bonus_hours(self, ctx, 
@@ -139,6 +143,7 @@ class Misc(commands.Cog):
         save_guild_config(str(ctx.guild.id), guild_config)
         await ctx.send_response(content=f"Config item set - bonus_hours = {guild_config['bonus_hours']}")
     
+    @add_to_group('admin')
     @commands.slash_command(name='configclearitem')
     @is_admin()
     async def _config_clear_item(self, ctx, _key: discord.Option(name="key", choices=["member_roles", "admin_roles", "command_channels", "bonus_hours"], required=True)):
@@ -146,7 +151,8 @@ class Misc(commands.Cog):
         guild_config[_key] = ""
         save_guild_config(str(ctx.guild.id), guild_config)
         await ctx.send_response(content=f"Config item cleared - {_key} = {guild_config[_key]}")
-        
+    
+    @add_to_group('admin')
     @commands.slash_command(name='echo')
     @is_admin()
     async def _echo(self, ctx, content: discord.Option(str, name='content', required=True)):

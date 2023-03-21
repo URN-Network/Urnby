@@ -6,6 +6,8 @@ import logging
 from asyncio import sleep
 from dotenv import load_dotenv
 
+from pycord.multicog import apply_multicog
+
 import static.common as com
 import data.databaseapi as db
 
@@ -24,7 +26,6 @@ UrnbyBot = discord.Bot(intents=intents)
 
 cogs_list = [
     'clocks',
-    'peeper',
     'campqueue',
     'misc',
     'dashboard',
@@ -37,7 +38,7 @@ cogs_list = [
 async def on_ready():
     await db.init_database()
     print(f"{com.get_current_iso()} - {UrnbyBot.user} is online!", flush=True)
-
+'''
 @UrnbyBot.command()
 @commands.is_owner()
 async def ownershutdown(ctx):
@@ -50,7 +51,8 @@ async def ownershutdown(ctx):
     print("Bot logging off")
     # for any cleanup close will need to be overridden which will require contextulizing the bot
     await UrnbyBot.close()
-    
+'''
+'''
 @UrnbyBot.command()
 @commands.is_owner()
 async def ownerrestart(ctx):
@@ -58,9 +60,10 @@ async def ownerrestart(ctx):
         UrnbyBot.reload_extension(f'cogs.{cog}')
     print('Cogs restarted')
     await ctx.send_response(content="Restarted!")
-
+'''
 for cog in cogs_list:
     UrnbyBot.load_extension(f'cogs.{cog}')
-    
+
+apply_multicog(UrnbyBot)
 UrnbyBot.run(TOKEN)
 
