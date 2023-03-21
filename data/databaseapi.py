@@ -1,5 +1,5 @@
 import aiosqlite
-from static.common import get_hours_from_secs
+from static.common import get_hours_from_secs, get_current_timestamp
 
 async def check_tables(tbls):
     l = []
@@ -394,7 +394,7 @@ async def get_replacements_before_user(guild_id, user_id) -> list:
 
     rep = await get_replacement(guild_id, user_id)
     if not rep:
-        return None
+        rep = {'in_timestamp': get_current_timestamp()}
     
     res = []
     async with aiosqlite.connect('data/urnby.db') as db:

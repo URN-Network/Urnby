@@ -109,11 +109,15 @@ class Channel_Stats(commands.Cog):
                     await channel.edit(name=mins_till_ds_str)
             channel = None
             if config.get('campstatus_stats'):
-                _open = "Status: <CLOSED>"
+                _open = "Status: <CLOSED"
                 if mins_till_ds >= 0 and mins_till_ds <= com.MINUTE_IN_HOUR * CAMP_HOURS_TILL_DS:
-                    _open = "Status: <OPEN>"
+                    _open = "Status: <OPEN"
                 if mins_till_ds < 0:
-                    _open = "Status: <UNKNOWN>"
+                    _open = "Status: <UNKNOWN"
+                ses = await db.get_session(guild.id)
+                if ses:
+                    _open += "+ACTIVE"                
+                _open += ">"
                 channel = next((c for c in guild.channels if c.id == config['campstatus_stats']), None)
                 if channel and channel.name != _open and channel.permissions_for(guild.get_member(self.bot.user.id)).manage_channels:
                     print(f'setting channel {channel.name} to {_open}')
@@ -122,8 +126,12 @@ class Channel_Stats(commands.Cog):
             if config.get('active_stats') and config.get('max_active'):
                 _max = config.get('max_active')
                 actives = await db.get_all_actives(guild.id)
+                
                 _current = len(actives)
                 s = f'Actives {_current}/{_max}'
+                reps = await db.get_replacement_queue(guild.id)
+                if reps:
+                    s += f'+{len(reps)}'
                 channel = next((c for c in guild.channels if c.id == config['active_stats']), None)
                 if channel and channel.name != s and channel.permissions_for(guild.get_member(self.bot.user.id)).manage_channels:
                     print(f'setting channel {channel.name} to {_open}')

@@ -3,6 +3,7 @@ import datetime
 import json
 import asyncio
 import copy
+from enum import Enum
 from pathlib import Path
 
 # External
@@ -13,6 +14,7 @@ from aiosqlite import OperationalError
 # Internal
 import data.databaseapi as db
 import static.common as com
+from views.SkipQueueView import SkipQueueView
 from views.ClearOutView import ClearOutView
 from checks.IsAdmin import is_admin, NotAdmin
 from checks.IsCommandChannel import is_command_channel, NotCommandChannel
@@ -27,6 +29,13 @@ from checks.IsInDev import is_in_dev, InDevelopment
 #   Unless monospaced format is wanted (ie: ``` ```) for formating purposes, will display as EST timezone (need to assign tz info)
 # Any stored values NOT as integer timestamps are for info/debug ONLY do not access isoformats
 
+class MemberQueryResult(Enum):
+    FOUND = 1
+    ID_NOT_FOUND = 2
+    NOT_UNIQUE = 3
+    UNKNOWN_PARAMETER = 4
+    QUERY_FAILED = 5
+    
 
 class Clocks(commands.Cog):
     
@@ -34,7 +43,6 @@ class Clocks(commands.Cog):
         self.bot = bot
         self.state_lock = asyncio.Lock()
         print('Initilization on clocks complete', flush=True)
-    
     
     @commands.Cog.listener()
     async def on_ready(self):
@@ -153,7 +161,6 @@ class Clocks(commands.Cog):
         # Already active check
         actives = await db.get_all_actives(ctx.guild.id)
         
-        
         for active in actives:
             if active['user'] == ctx.author.id:
                 await ctx.send_response(content=f'You are already active, did you mean to clockout?')
@@ -174,21 +181,28 @@ class Clocks(commands.Cog):
             }
 
         older_reps = await self.cq.get_older_reps_than_user(ctx, ctx.author.id)
+        if older_reps:
+            view = SkipQueueView()
+            await ctx.respond("There are members ahead of you in the rep queue, are you sure you want to remove them from the queue and skip to clockin?", view=view)
+            await view.wait()
+            if view.result == False:
+                # Time out
+                return
+            elif view.result == True:
+                content = f'Removing these replacements which are OLDER than this replacement:'
+                for rep in older_reps:
+                    await self.cq.remove_rep(ctx, rep['user'])
+                    content += f'\n<@{rep["user"]}> @ {com.datetime_from_timestamp(rep["in_timestamp"]).isoformat()}'
+                await ctx.send_followup(content=content)
+                
         rep_removed = await self.cq.remove_rep(ctx, ctx.author.id)
         
         content = f'{ctx.author.display_name} {com.scram("Successfully")} clocked in at <t:{doc["in_timestamp"]}:f>'
         if rep_removed is not None:
             content += f' and was removed from replacement list'
         await db.store_active_record(ctx.guild.id, doc)
-        await ctx.send_response(content=content)
+        await ctx.send_followup(content=content)
         
-        if older_reps:
-            content = f'Removing these replacements which are OLDER than this replacement:'
-            for rep in older_reps:
-                await self.cq.remove_rep(ctx, rep['user'])
-                content += f'\n<@{rep["user"]}> @ {com.datetime_from_timestamp(rep["in_timestamp"]).isoformat()}'
-            await ctx.send_followup(content=content)
-
         config = self.get_config(ctx.guild.id)
         if 'max_active' in config.keys() and config['max_active'] < len(actives)+1:
             actives = await db.get_all_actives(ctx.guild.id)
@@ -204,8 +218,15 @@ class Clocks(commands.Cog):
     @is_member()
     @is_member_visible()
     @is_command_channel()
-    async def _clockout(self, ctx):
-        res = await self._inner_clockout(ctx, ctx.author.id)
+    async def _clockout(self, ctx, userid: discord.Option(str, name='userid', required=False, default=None)):
+        target = ctx.author.id
+        if userid is not None:
+            target = await check_user_id(ctx, userid)
+            if target is None:
+                return
+        
+        res = await self._inner_clockout(ctx, target)
+        
         await ctx.send_response(content=res['content'])
         if res['status'] == False:
             return
@@ -214,7 +235,21 @@ class Clocks(commands.Cog):
             row = await db.store_new_historical(ctx.guild.id, item)
             tot = await db.get_user_hours(ctx.guild.id, ctx.author.id)
             await ctx.send_followup(content=f'{ctx.author.display_name} Obtained bonus hours, stored record #{row} for {item["_DEBUG_delta"]} hours. Your total is at {round(tot, 2)}')
-            
+    
+    @commands.user_command(name="Clockout User")
+    @is_member()
+    async def _user_clockout(self, ctx, member: discord.Member):
+        res = await self._inner_clockout(ctx, member.id)
+        await ctx.send_response(content=f"{ctx.author.display_name} attempted to clock out user {member.display_name}. {res['content']}\n")
+        if res['status'] == False:
+            return
+        bonus_sessions = await self.get_bonus_sessions(ctx.guild.id, res['record'], res['row'])
+        for item in bonus_sessions:
+            row = await db.store_new_historical(ctx.guild.id, item)
+            tot = await db.get_user_hours(ctx.guild.id, ctx.author.id)
+            await ctx.send_followup(content=f'{ctx.author.display_name} Obtained bonus hours, stored record #{row} for {item["_DEBUG_delta"]} hours. User total is at {round(tot, 2)}')
+        return
+    
     async def get_bonus_sessions(self, guild_id, record, row):
         config = self.get_config(guild_id)
         if not config.get('bonus_hours'):
@@ -266,7 +301,6 @@ class Clocks(commands.Cog):
         record = found[0]
         
         res = await db.remove_active_record(ctx.guild.id, record)
-        
         
         _out = com.get_current_datetime()
         record['_DEBUG_out'] = _out.isoformat()
@@ -444,18 +478,18 @@ class Clocks(commands.Cog):
     @commands.slash_command(name='getcommands', description='Ephemeral - Get a list of historical commands submitted to the bot by a user')
     @is_member()
     async def _get_commands(self, ctx, 
-                            _id: discord.Option(str, name="user_id", default=''),
+                            _id: discord.Option(str, name="user_id", default=None),
                             startat: discord.Option(int, name="start_at", default=0), 
                             count: discord.Option(int, name="count", default=10)):
-        if _id == '':
-            _id = ctx.author.id
-        try:
-            _id = int(_id)
-        except ValueError as err:
-            ctx.send_response(content=f'id must be a valid integer {err}', ephemeral=True)
-            return
-        res = await db.get_user_commands_history(ctx.guild.id, _id, start_at=int(startat), count=int(count))
-        content = f"<@{_id}>'s last {len(res)} commands"
+        if _id is None:
+            userid = ctx.author.id
+        else:
+            userid = await check_user_id(ctx, _id)
+            if userid is None:
+                return
+                
+        res = await db.get_user_commands_history(ctx.guild.id, userid, start_at=int(startat), count=int(count))
+        content = f"<@{userid}>'s last {len(res)} commands"
         if startat:
             content += f", starting at user's {startat}'th most recent command"
         if res:
@@ -507,23 +541,23 @@ class Clocks(commands.Cog):
     @commands.slash_command(name="getusersessions", description='Ephemeral - Get list of user\'s historical sessions')
     @is_member()
     async def _cmd_get_user_sessions(self, ctx, 
-                                    _id: discord.Option(str, name="user_id", default=''),
+                                    _id: discord.Option(str, name="user_id", default=None),
                                     _timetype: discord.Option(str, name="timetype", choices=["Hours", "Seconds"], default='Hours'),
                                     _public: discord.Option(bool, name="public", default=False)):
-        if _id == '':
-            _id = ctx.author.id
+        
+        if _id is None:
+            userid = ctx.author.id
         else:
-            try:
-                _id = int(_id)
-            except ValueError as err:
-                ctx.send_response(content=f'id must be a valid integer {err}', ephemeral=True)
+            userid = await check_user_id(ctx, _id)
+            if userid is None:
                 return
-        res = await db.get_historical_user(ctx.guild.id, _id)
+        
+        res = await db.get_historical_user(ctx.guild.id, userid)
         if len(res) == 0:
             await ctx.send_response(content=f"{member.display_name} has no recorded sessions", ephemeral=True)
             return
         chunks = []
-        title = f"_ _\n<@{_id}> Sessions:\n"
+        title = f"_ _\n<@{userid}> Sessions:\n"
         content = ""
         for item in res:
             _in = com.datetime_from_timestamp(item['in_timestamp'])
@@ -553,8 +587,8 @@ class Clocks(commands.Cog):
                     chunks.append(content[:clip_idx])
                 content = content[clip_idx:]
         
-        tot = await db.get_user_hours(ctx.guild.id, _id)
-        tail = f"\n<@{_id}> has accrued {tot} hours"        
+        tot = await db.get_user_hours(ctx.guild.id, userid)
+        tail = f"\n<@{userid}> has accrued {tot} hours"        
         if res:
             chunks.append(content)
         
@@ -575,21 +609,20 @@ class Clocks(commands.Cog):
     async def _get_user_sessions(self, ctx, member: discord.Member):
         await self._cmd_get_user_sessions(ctx, member.id, "Hours", False)
         return
-                
+    
     @commands.slash_command(name="getuserseconds", description='Get total number of seconds that a user has accrued')
     @is_member()
     async def _get_user_seconds(self, ctx,  _id: discord.Option(str, name="user_id", default='')):
-        if _id == '':
-            _id = ctx.author.id
-        try:
-            _id = int(_id)
-        except ValueError as err:
-            ctx.send_response(content=f'id must be a valid integer {err}', ephemeral=True)
-            return
+        if _id is None:
+            userid = ctx.author.id
+        else:
+            userid = await check_user_id(ctx, _id)
+            if userid is None:
+                return
         
-        secs = await db.get_user_seconds(ctx.guild.id, _id)
-        await ctx.send_response(content=f'<@{_id}> has {secs}', ephemeral=True)
-    
+        secs = await db.get_user_seconds(ctx.guild.id, userid)
+        await ctx.send_response(content=f'<@{userid}> has {secs}', ephemeral=True)
+        
     # ==============================================================================
     # Admin functions
     # ==============================================================================   
@@ -598,19 +631,6 @@ class Clocks(commands.Cog):
     async def _admincommand(self, ctx):
         await ctx.send_response(content=f'You\'re an admin!')
     
-    @commands.user_command(name="Admin - Clockout")
-    @is_member()
-    async def _adminclockout(self, ctx, member: discord.Member):
-        res = await self._inner_clockout(ctx, member.id)
-        await ctx.send_response(content=res['content'])
-        if res['status'] == False:
-            return
-        bonus_sessions = await self.get_bonus_sessions(ctx.guild.id, res['record'], res['row'])
-        for item in bonus_sessions:
-            row = await db.store_new_historical(ctx.guild.id, item)
-            tot = await db.get_user_hours(ctx.guild.id, ctx.author.id)
-            await ctx.send_followup(content=f'{ctx.author.display_name} Obtained bonus hours, stored record #{row} for {item["_DEBUG_delta"]} hours. User total is at {round(tot, 2)}')
-        return
     
     @commands.slash_command(name='admindirecturn', description='Admin command to directly urn a user')
     @is_admin()
@@ -618,14 +638,13 @@ class Clocks(commands.Cog):
     @is_member_visible()
     async def _directurn(self, ctx, 
                         sessionname: discord.Option(str, name="sessionname", required=True),
-                        userid: discord.Option(str, name="userid", required=True),
+                        _id: discord.Option(str, name="userid", required=True),
                         username: discord.Option(str, name="username", required=True),
                         date: discord.Option(str, name="killdate", description="Form YYYY-MM-DD", required=True),
                         time: discord.Option(str, name="killtime", description="Form HH:MM in EST", required=True)):
-        try:
-            userid = int(userid)
-        except ValueError as err:
-            ctx.send_response(content=f'id must be a valid integer {err}', ephemeral=True)
+        
+        userid = await check_user_id(ctx, _id)
+        if userid is None:
             return
         secs = await db.get_user_seconds(ctx.guild.id, userid)
         hours = com.get_hours_from_secs(secs)
@@ -709,10 +728,8 @@ class Clocks(commands.Cog):
                             outtime: discord.Option(str, name="outtime", description="Form HH:MM in EST", required=True),
                             character: discord.Option(str, name="character", default=''),
                             dayafter: discord.Option(str, name="dayafter", choices=['True', 'False'], description="Did clockout occur the day after in?", default='False')):
-        try:
-            userid = int(userid)
-        except ValueError as err:
-            ctx.send_response(content=f'id must be a valid integer {err}', ephemeral=True)
+        userid = await check_user_id(ctx, userid)
+        if userid is None:
             return
         if len(intime) == 4:
             intime = "0" + intime
@@ -781,6 +798,37 @@ class Clocks(commands.Cog):
     def get_config(self, guild_id):
         return json.load(open('data/config.json', 'r', encoding='utf-8')).get(str(guild_id))
     
+
+# function to accept a user id to check, or partial/full string to match user name on, returns None on didnt find or an userid int
+async def check_user_id(ctx, param) -> int:
+    # Try userid for int interpretation
+    ret = {'result': None, 'type': MemberQueryResult.QUERY_FAILED}
+    try:
+        int(param)
+        res = await ctx.guild.fetch_member(int(param))
+        ret = {'result': res, 'type': MemberQueryResult.FOUND}
+    except ValueError as err:
+        # Failed int parsing
+        pass 
+    except discord.errors.NotFound:
+        ret = {'result': None, 'type': MemberQueryResult.ID_NOT_FOUND}
+    
+    # try querying string for member
+    try:
+        res = await ctx.guild.query_members(query=param, limit=2)
+        if len(res) == 0:
+            ret = {'result': None, 'type': MemberQueryResult.ID_NOT_FOUND}
+        elif len(res) == 1:
+            ret = {'result': res[0], 'type': MemberQueryResult.FOUND}
+        else:
+            ret = {'result': None, 'type': MemberQueryResult.NOT_UNIQUE}
+    except Exeption as err:
+        pass
+    
+    if ret['result'] is None:
+        await ctx.send_response(content=f"userid '{param}' couldnt be found, returned {ret['type']}", ephemeral=True)
+        return None
+    return ret['result'].id
 
 def setup(bot):
     cog = Clocks(bot)
