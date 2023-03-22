@@ -135,7 +135,7 @@ class CampQueue(commands.Cog):
             content = 'There are no replacements available'
         await ctx.send_response(content=content, ephemeral=not public, allowed_mentions=discord.AllowedMentions(users=False))
     
-    @rep_group.command(name='add', description='Add yourself to the replacement list (FIFO)')
+    @rep_group.command(name='add', description='Add yourself to the replacement queue')
     @is_member()
     @is_command_channel()
     async def _repadd(self, ctx, userid: discord.Option(str, name="userid", default = None, required=False)):
@@ -165,7 +165,7 @@ class CampQueue(commands.Cog):
         await ctx.send_response(content=f'{display_name} Successfully added to replacement queue')
         
     
-    @rep_group.command(name='remove', description='Remove yourself from the replacement list')
+    @rep_group.command(name='remove', description='Remove yourself from the replacement queue')
     @is_member()
     @is_command_channel()
     async def _repremove(self, ctx, userid: discord.Option(str, name="userid", default = None, required=False)):
@@ -209,7 +209,7 @@ class CampQueue(commands.Cog):
         await ctx.send_response(content=f'{display_name} Successfully removed from replacement queue')   
     '''
     @add_to_group('admin')
-    @commands.slash_command(name='repclear')
+    @commands.slash_command(name='repclear', description='Clears queue for replacements')
     @is_admin()
     @is_command_channel()
     async def _adminrepclear(self, ctx):

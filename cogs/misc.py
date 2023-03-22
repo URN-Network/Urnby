@@ -105,7 +105,7 @@ class Misc(commands.Cog):
         await ctx.send_response(content=f"Database initialized")
     '''
     @add_to_group('admin')
-    @commands.slash_command(name='configadd')
+    @commands.slash_command(name='configadd', description='Add configuration item (not bonus hours)')
     @is_admin()
     async def _add_config(self, ctx, 
                           _key: discord.Option(str, name="key", choices=["member_roles", "admin_roles", "command_channels", "max_active", "dashboard_channel", "channel_stats"], required=True),
@@ -120,7 +120,7 @@ class Misc(commands.Cog):
         await ctx.send_response(content=f"Config item set - {_key} = {guild_config[_key]}")
     
     @add_to_group('admin')
-    @commands.slash_command(name='configaddbonushours')
+    @commands.slash_command(name='configaddbonushours', description='Add a set of bonus hours')
     @is_admin()
     async def _add_config_bonus_hours(self, ctx, 
                           _start: discord.Option(str, name="start", required=True),
@@ -144,7 +144,7 @@ class Misc(commands.Cog):
         await ctx.send_response(content=f"Config item set - bonus_hours = {guild_config['bonus_hours']}")
     
     @add_to_group('admin')
-    @commands.slash_command(name='configclearitem')
+    @commands.slash_command(name='configclearitem', description='Clear a configuration item, will need to set values again')
     @is_admin()
     async def _config_clear_item(self, ctx, _key: discord.Option(name="key", choices=["member_roles", "admin_roles", "command_channels", "bonus_hours"], required=True)):
         guild_config = get_guild_config(str(ctx.guild.id))
@@ -153,7 +153,7 @@ class Misc(commands.Cog):
         await ctx.send_response(content=f"Config item cleared - {_key} = {guild_config[_key]}")
     
     @add_to_group('admin')
-    @commands.slash_command(name='echo')
+    @commands.slash_command(name='echo', description='Echo echo echo......')
     @is_admin()
     async def _echo(self, ctx, content: discord.Option(str, name='content', required=True)):
         await ctx.channel.send(content=content)

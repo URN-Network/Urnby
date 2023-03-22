@@ -48,7 +48,7 @@ class Tod(commands.Cog):
         await ctx.send_response(content=f"Set tod at {rec['_DEBUG_tod_datetime']}, spawn will happen at {(tod_datetime+datetime.timedelta(days=1)).isoformat()}")
         return
         
-    @commands.slash_command(name='settod',  description='Entered tod must be todays date, or using the optional daybefore parameter, yesterday')
+    @commands.slash_command(name='settod', description='Set tod to a more specific time, with optional parameter for yesterday')
     async def _settod(self, ctx, 
                        tod: discord.Option(str, name='tod', description="Use when time is not 'now' - 24hour clock time EST (ex 14:49)" , default='now'),
                        mobname: discord.Option(str, name='mobname', default='Drusella Sathir'),
@@ -81,7 +81,7 @@ class Tod(commands.Cog):
         return
     
     @add_to_group('get')
-    @commands.slash_command(name='tod')
+    @commands.slash_command(name='tod', description='Get current ToD record')
     async def _get_tod(self, ctx):
         rec = await db.get_tod(ctx.guild.id)
         now = com.get_current_datetime()

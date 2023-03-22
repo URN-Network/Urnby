@@ -658,7 +658,7 @@ class Clocks(commands.Cog):
     async def _admincommand(self, ctx):
         await ctx.send_response(content=f'You\'re an admin!')
     
-    @admin_group.command(name='directurn', description='Admin command to directly urn a user')
+    @admin_group.command(name='directurn', description='Directly /urn a user')
     @is_admin()
     @is_member()
     @is_member_visible()
@@ -700,7 +700,7 @@ class Clocks(commands.Cog):
         
         await ctx.send_response(content=f'{username} - <@{int(userid)}> {com.scram("Successfully")} URNed and stored record #{res} for {doc["_DEBUG_delta"]} hours. Total is at {tot}')
     
-    @admin_group.command(name='changehistory', description='Admin command to change a historical record of a user')
+    @admin_group.command(name='changehistory', description='Change a historical record of a user')
     @is_admin()
     @is_member()
     @is_member_visible()
@@ -741,7 +741,7 @@ class Clocks(commands.Cog):
         res = await db.store_new_historical(ctx.guild.id, rec)
         await ctx.send_response(content=f'Updated record #{row}, {_type} from {was["_DEBUG"]} to {_datetime.isoformat()} for user <@{rec["user"]}>', allowed_mentions=discord.AllowedMentions(users=False))
     
-    @admin_group.command(name='directrecord', description='Admin command to add a historical record of a user')
+    @admin_group.command(name='directrecord', description='Add a historical record for a user')
     @is_admin()
     @is_member()
     @is_member_visible()
