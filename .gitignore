@@ -1,4 +1,5 @@
 .env
+nohup.out
 data/*
 !data/databaseapi.py
 temp/*
