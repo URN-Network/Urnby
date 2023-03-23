@@ -295,7 +295,7 @@ class Dashboard(commands.Cog):
             
             col1 = get_col1()
             col2 = get_col2()
-            now = com.get_current_datetime().strftime("%H:%M:%S")
+            now = com.get_current_datetime().time().isoformat()
             desktop_dash = f'_Last Updated: {now}_```ansi\n'
             for idx, _ in enumerate(col1):
                 div = '|'

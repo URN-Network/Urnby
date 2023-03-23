@@ -367,6 +367,13 @@ async def remove_replacement(guild_id, user_id):
             lastrow = cursor.lastrowid
         await db.commit()
     return lastrow
+    
+async def remove_replacements(guild_id, users=[]):
+    res = []
+    for user in users:
+        r = await remove_replacement(guild_id, user)
+        res.append(r)
+    return res
 
 async def clear_replacement_queue(guild_id):
     lastrow = 0

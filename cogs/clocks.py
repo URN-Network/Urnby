@@ -54,7 +54,8 @@ class Clocks(commands.Cog):
         missing_tables = await db.check_tables(['historical', 'session', 'session_history', 'active', 'commands'])
         if missing_tables:
             print(f"Warning, missing the following tables in db: {missing_tables}")
-        self.cq = self.bot.get_cog('CampQueue')
+        #saving for example to get handle on other cogs
+        #self.cq = self.bot.get_cog('CampQueue')
     
     async def cog_before_invoke(self, ctx):
         guild_id = 0
@@ -185,7 +186,7 @@ class Clocks(commands.Cog):
                 '_DEBUG_delta': '',
             }
         content = ''
-        older_reps = await self.cq.get_older_reps_than_user(ctx, ctx.author.id)
+        older_reps = await db.get_replacements_before_user(ctx, ctx.author.id)
         if older_reps:
             view = SkipQueueView()
             await ctx.send_response("There are members ahead of you in the rep queue, are you sure you want to remove them from the queue and skip to clockin?", view=view)
@@ -197,7 +198,7 @@ class Clocks(commands.Cog):
                 '''
                 content = f'Removing these replacements which are OLDER than this replacement:'
                 for rep in older_reps:
-                    await self.cq.remove_rep(ctx, rep['user'])
+                    await remove_rep(ctx, rep['user'])
                     content += f'\n<@{rep["user"]}> @ {com.datetime_from_timestamp(rep["in_timestamp"]).isoformat()}'
                 
                 content += '\n'
@@ -207,7 +208,7 @@ class Clocks(commands.Cog):
                     content += f'<@{rep["user"]}> '
                 content += '\n'
                 
-        rep_removed = await self.cq.remove_rep(ctx, ctx.author.id)
+        rep_removed = await db.remove_replacement(ctx, ctx.author.id)
         
         content += f'{ctx.author.display_name} {com.scram("Successfully")} clocked in at <t:{doc["in_timestamp"]}:f>'
         if rep_removed is not None:

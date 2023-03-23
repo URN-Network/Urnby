@@ -50,7 +50,8 @@ class CampQueue(commands.Cog):
         command = {'command_name': ctx.command.qualified_name, 'options': str(ctx.selected_options), 'datetime': now_iso, 'user': ctx.author.id, 'user_name': ctx.author.name, 'channel_name': ctx.channel.name}
         await db.store_command(guild_id, command)
         return
-
+    ''' Removing for superfluousness
+    
     # ========================
     #  Abstract away direct data access
     # ========================
@@ -72,7 +73,8 @@ class CampQueue(commands.Cog):
     async def get_older_reps_than_user(self, ctx, user_id) -> list:
         reps = await db.get_replacements_before_user(ctx.guild.id, user_id)
         return reps
-
+    '''
+    
     # ==============================================================================
     # Error Handlers
     # ==============================================================================
