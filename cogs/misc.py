@@ -17,6 +17,10 @@ from checks.IsMemberVisible import is_member_visible, NotMemberVisible
 from checks.IsMember import is_member, NotMember
 from checks.IsInDev import is_in_dev, InDevelopment
 
+array_config = ["member_roles", "admin_roles", "command_channels", "channel_stats"]
+value_config = ["max_active", "dashboard_channel", "mobile_dash_channel"]
+special_config = ["bonus_hours"]
+
 class Misc(commands.Cog):
     
     def __init__(self, bot):
@@ -108,14 +112,16 @@ class Misc(commands.Cog):
     @commands.slash_command(name='configadd', description='Add configuration item (not bonus hours)')
     @is_admin()
     async def _add_config(self, ctx, 
-                          _key: discord.Option(str, name="key", choices=["member_roles", "admin_roles", "command_channels", "max_active", "dashboard_channel", "mobile_dash_channel", "channel_stats"], required=True),
+                          _key: discord.Option(str, name="key", choices=array_config + value_config, required=True),
                           _value: discord.Option(str, name="value", required=True)):
         
         guild_config = get_guild_config(str(ctx.guild.id))
-        if _key == "max_active" or _key == "dashboard_channel" or _key == "mobile_dash_channel":
+        if _key in value_config:
             guild_config[_key] = int(_value)
-        else:
+        elif _key in array_config:
             guild_config[_key].append(int(_value))
+        else:
+            raise TypeError('configuration item type not found, contact administrator')
         save_guild_config(str(ctx.guild.id), guild_config)
         await ctx.send_response(content=f"Config item set - {_key} = {guild_config[_key]}")
     
@@ -146,7 +152,7 @@ class Misc(commands.Cog):
     @add_to_group('admin')
     @commands.slash_command(name='configclearitem', description='Clear a configuration item, will need to set values again')
     @is_admin()
-    async def _config_clear_item(self, ctx, _key: discord.Option(name="key", choices=["member_roles", "admin_roles", "command_channels", "bonus_hours"], required=True)):
+    async def _config_clear_item(self, ctx, _key: discord.Option(name="key", choices=array_config+value_config+special_config, required=True)):
         guild_config = get_guild_config(str(ctx.guild.id))
         guild_config[_key] = ""
         save_guild_config(str(ctx.guild.id), guild_config)

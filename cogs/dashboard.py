@@ -4,6 +4,7 @@ import json
 import asyncio
 import time
 import os
+from enum import Enum
 
 # External
 import discord
@@ -23,6 +24,50 @@ CAMP_HOURS_TILL_DS = 18
 DEBUG = os.getenv('DEBUG')
 if DEBUG:
     REFRESH_TIME = 15
+
+class Format(Enum):
+    Normal = 0
+    Bold = 1
+    Underline = 4
+
+class TextColor(Enum):
+    Gray   = 30 
+    Red    = 31 
+    Green  = 32 
+    Yellow = 33 
+    Blue   = 34 
+    Pink   = 35 
+    Cyan   = 36 
+    White  = 37 
+
+class BackgroundColor(Enum):
+    FireflyDarkBlue  = 40 
+    Orange           = 41 
+    MarbleBlue       = 42 
+    GreyishTurquoise = 43 
+    Gray             = 44 
+    Indigo           = 45 
+    LightGray        = 46 
+    White            = 47 
+
+def ansi_format(t: str, format : Format = Format.Normal, exformat : Format = None, background : BackgroundColor = None , color : TextColor = None):
+    # TODO make it better for having two formating options, maybe move to common module
+    uni_esc = f'\u001b'
+    format_start = '['
+    format_end = 'm'
+    res = uni_esc + format_start
+    if format:
+        res += str(format.value)
+    else:
+        res += str(Format.Normal.value)
+    if exformat:
+        res += ';' + str(exformat.value)
+    if background:
+        res += ';' + str(background.value)
+    if color:
+        res += ';' + str(color.value)
+    res += format_end + t + uni_esc + format_start + str(Format.Normal.value) + format_end
+    return res
 
 class Dashboard(commands.Cog):
     
@@ -105,6 +150,14 @@ class Dashboard(commands.Cog):
             config = self.get_config(guild.id)
             if not config or not config.get('dashboard_channel'):
                 continue
+            channel = await guild.fetch_channel(config['dashboard_channel'])
+            mobile_channel = None
+            if config.get('mobile_dash_channel'):
+                mobile_channel = await guild.fetch_channel(config['mobile_dash_channel'])
+            if not self.dash_message.get(guild.id):
+                await channel.send(content=f'Starting Dashboard...', silent=True)
+            if not self.dash_mobile_message.get(guild.id):
+                await mobile_channel.send(content=f'Starting Dashboard...', silent=True)
             session_real = await db.get_session(guild.id)
             historical_recs_from_session = []
             if session_real:
@@ -201,11 +254,11 @@ class Dashboard(commands.Cog):
                 col1.append(seperator)
                 for item in actives:
                     if item['ses_delta'] >= 6:
-                        total_fmt = f'\u001b[1;31m'
+                        color = TextColor.Red
                     else:
-                        total_fmt = f'\u001b[0;32m'
-
-                    col1.append(f"{' ' + item['display_name'][:24-reduce]:{36-reduce}}{total_fmt}{item['delta']:>5.2f}{' / ':3}{item['ses_delta']:>5.2f}{' ':1}\u001b[0m")
+                        color = TextColor.Green
+                    formated_times = ansi_format(f"{item['delta']:>5.2f}{' / ':3}{item['ses_delta']:>5.2f}{' ':1}", format=Format.Bold, color=color)
+                    col1.append(f"{' ' + item['display_name'][:24-reduce]:{36-reduce}}{formated_times:14}")
                 col1.append(seperator)
                 col1.append(f"{' Camp Queue':{36-reduce}}{'Mins in queue':>13}{' ':1}")
                 col1.append(seperator)
@@ -235,6 +288,8 @@ class Dashboard(commands.Cog):
                             medal='🥈'
                         case 2:
                             medal='🥉'
+                        case _:
+                            medal=''
                     col2.append(f"{' ' + res[idx]['display_name'][:41-reduce]:{42-reduce}}{' ':1}{res[idx]['total']:>6.2f}{' ':1}{medal}")
                 return col2
             
@@ -259,7 +314,7 @@ class Dashboard(commands.Cog):
                 mobile_dash += mcol2[idx] + '\n'
             mobile_dash += "```\n"
             
-            channel = await guild.fetch_channel(config['dashboard_channel'])
+            
             if not session_real:
                 desktop_dash += "Paused till session start. "
                 mobile_dash += "Paused till session start. "
@@ -270,24 +325,20 @@ class Dashboard(commands.Cog):
                     
                 await self.dash_message[guild.id].edit(content=desktop_dash)
                 
-                if config.get('mobile_dash_channel'):
-                    mobile_channel = await guild.fetch_channel(config['mobile_dash_channel'])
-                    
-                    if mobile_channel and mobile_channel.permissions_for(guild.get_member(self.bot.user.id)).send_messages:
-                        await self.dash_mobile_message[guild.id].edit(content=mobile_dash)
-                    else:
-                        print(f'mobile channel {mobile_channel} could not send maybe permissions?')
+                
+                if mobile_channel and mobile_channel.permissions_for(guild.get_member(self.bot.user.id)).send_messages:
+                    await self.dash_mobile_message[guild.id].edit(content=mobile_dash)
+                else:
+                    print(f'{guild.id} mobile channel {mobile_channel} could not sent permissions or config not in')
                 
                 self.delay[guild.id] = True
             else:
                 await self.dash_message[guild.id].edit(content=desktop_dash)
                 
-                if config.get('mobile_dash_channel'):
-                    mobile_channel = await guild.fetch_channel(config['mobile_dash_channel'])
-                    if mobile_channel and mobile_channel.permissions_for(guild.get_member(self.bot.user.id)).send_messages:
-                        await self.dash_mobile_message[guild.id].edit(content=mobile_dash)
-                    else:
-                        print(f'mobile channel {mobile_channel} could not send maybe permissions?')
+                if mobile_channel and mobile_channel.permissions_for(guild.get_member(self.bot.user.id)).send_messages:
+                    await self.dash_mobile_message[guild.id].edit(content=mobile_dash)
+                else:
+                    print(f'{guild.id} mobile channel {mobile_channel} could not sent permissions or config not in')
                 
                 self.open_transitioned[guild.id] = False
                 self.delay[guild.id] = False
