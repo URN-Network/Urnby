@@ -108,11 +108,11 @@ class Misc(commands.Cog):
     @commands.slash_command(name='configadd', description='Add configuration item (not bonus hours)')
     @is_admin()
     async def _add_config(self, ctx, 
-                          _key: discord.Option(str, name="key", choices=["member_roles", "admin_roles", "command_channels", "max_active", "dashboard_channel", "channel_stats"], required=True),
+                          _key: discord.Option(str, name="key", choices=["member_roles", "admin_roles", "command_channels", "max_active", "dashboard_channel", "mobile_dash_channel", "channel_stats"], required=True),
                           _value: discord.Option(str, name="value", required=True)):
         
         guild_config = get_guild_config(str(ctx.guild.id))
-        if _key == "max_active" or _key == "dashboard_channel":
+        if _key == "max_active" or _key == "dashboard_channel" or _key == "mobile_dash_channel":
             guild_config[_key] = int(_value)
         else:
             guild_config[_key].append(int(_value))

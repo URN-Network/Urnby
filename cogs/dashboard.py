@@ -34,6 +34,8 @@ class Dashboard(commands.Cog):
         self.config_cache = {}
         self.refresh_cache_config()
         self.printer.start()
+        self.dash_message = {}
+        self.dash_mobile_message = {}
         print('Initilization on dashboard complete')
         
             
@@ -45,11 +47,10 @@ class Dashboard(commands.Cog):
             
         for guild in self.bot.guilds:
             config = self.get_config(guild.id)
-            if not config or not config.get('dashboard_channel'):
+            if not config:
                 continue
             await self._purge_dashboard(guild)
-    
-        
+
     def cog_unload(self):
         self.printer.stop()
         print('Dashboard update stopped', flush=True)
@@ -88,10 +89,14 @@ class Dashboard(commands.Cog):
             print(f'{com.get_current_iso()} [{guild.id}] - Purging dashboard', flush=True)
             channel = await guild.fetch_channel(config['dashboard_channel'])
             await channel.purge(check=chk)
+            self.dash_message[guild.id] = await channel.send(content=f'Starting Dashboard...', silent=True)
+
         if config.get('mobile_dash_channel'):
             print(f'{com.get_current_iso()} [{guild.id}] - Purging mobile dash', flush=True)
             mobile_channel = await guild.fetch_channel(config['mobile_dash_channel'])
             await mobile_channel.purge(check=chk)
+            self.dash_mobile_message[guild.id] = await mobile_channel.send(content=f'Starting Dashboard...', silent=True)
+
     
     @tasks.loop(**{REFRESH_TYPE:REFRESH_TIME})
     async def printer(self):
@@ -154,7 +159,6 @@ class Dashboard(commands.Cog):
                 session = session_real
                 timestr = com.datetime_from_timestamp(session['start_timestamp']).strftime("%b%d %I:%M%p")
             
-            #TODO get camp queue
             camp_queue = await db.get_replacement_queue(guild.id)
             
             # NOTE! Actives and Camp queue must be completed before this step as we are limiting based on the number of the aforementioned 
@@ -196,7 +200,12 @@ class Dashboard(commands.Cog):
                 col1.append(f"{' Active Users':<{34-reduce}}{'Current / Total':>15}{' ':1}") 
                 col1.append(seperator)
                 for item in actives:
-                    col1.append(f"{' ' + item['display_name'][:24-reduce]:{36-reduce}}{item['delta']:>5.2f}{' / ':3}{item['ses_delta']:>5.2f}{' ':1}")
+                    if item['ses_delta'] >= 6:
+                        total_fmt = f'\u001b[1;31m'
+                    else:
+                        total_fmt = f'\u001b[0;32m'
+
+                    col1.append(f"{' ' + item['display_name'][:24-reduce]:{36-reduce}}{total_fmt}{item['delta']:>5.2f}{' / ':3}{item['ses_delta']:>5.2f}{' ':1}\u001b[0m")
                 col1.append(seperator)
                 col1.append(f"{' Camp Queue':{36-reduce}}{'Mins in queue':>13}{' ':1}")
                 col1.append(seperator)
@@ -219,12 +228,20 @@ class Dashboard(commands.Cog):
                     if idx >= len(res):
                         col2.append(f"")
                         continue
-                    col2.append(f"{' ' + res[idx]['display_name'][:41-reduce]:{42-reduce}}{' ':1}{res[idx]['total']:>6.2f}{' ':1}")
+                    match idx:
+                        case 0:
+                            medal='🥇'
+                        case 1:
+                            medal='🥈'
+                        case 2:
+                            medal='🥉'
+                    col2.append(f"{' ' + res[idx]['display_name'][:41-reduce]:{42-reduce}}{' ':1}{res[idx]['total']:>6.2f}{' ':1}{medal}")
                 return col2
             
             col1 = get_col1()
             col2 = get_col2()
-            desktop_dash = "```\n"
+            now = com.get_current_datetime().strftime("%H:%M:%S")
+            desktop_dash = f'_Last Updated: {now}_```ansi\n'
             for idx, _ in enumerate(col1):
                 div = '|'
                 if idx == 1:
@@ -234,7 +251,7 @@ class Dashboard(commands.Cog):
             
             mcol1 = get_col1(True)
             mcol2 = get_col2(True)
-            mobile_dash = "```\n"
+            mobile_dash = f'_Last Updated: {now}_```ansi\n'
             for idx in range(len(mcol1)):
                 mobile_dash += mcol1[idx] + '\n'
             mobile_dash += '\n' + get_seperator(True) + '\n'
@@ -251,24 +268,24 @@ class Dashboard(commands.Cog):
                     desktop_dash += "Camp is open!"
                     mobile_dash += "Camp is open!"
                     
-                await channel.send(content=desktop_dash, silent=True)
+                await self.dash_message[guild.id].edit(content=desktop_dash)
                 
                 if config.get('mobile_dash_channel'):
                     mobile_channel = await guild.fetch_channel(config['mobile_dash_channel'])
                     
                     if mobile_channel and mobile_channel.permissions_for(guild.get_member(self.bot.user.id)).send_messages:
-                        await mobile_channel.send(content=mobile_dash, silent=True)
+                        await self.dash_mobile_message[guild.id].edit(content=mobile_dash)
                     else:
                         print(f'mobile channel {mobile_channel} could not send maybe permissions?')
                 
                 self.delay[guild.id] = True
             else:
-                await channel.send(content=desktop_dash, delete_after=REFRESH_TIME+.5, silent=True)
+                await self.dash_message[guild.id].edit(content=desktop_dash)
                 
                 if config.get('mobile_dash_channel'):
                     mobile_channel = await guild.fetch_channel(config['mobile_dash_channel'])
                     if mobile_channel and mobile_channel.permissions_for(guild.get_member(self.bot.user.id)).send_messages:
-                        await mobile_channel.send(content=mobile_dash, delete_after=REFRESH_TIME+.5, silent=True)
+                        await self.dash_mobile_message[guild.id].edit(content=mobile_dash)
                     else:
                         print(f'mobile channel {mobile_channel} could not send maybe permissions?')
                 
