@@ -160,7 +160,7 @@ class CampQueue(commands.Cog):
             await ctx.send_response(content=f'{display_name} is already clocked in')
             return
         
-        added = await self.add_rep(ctx, rep)
+        added = await db.add_replacement(ctx.guild.id, rep)
         if not added:
             await ctx.send_response(content=f'{display_name} is already in queue')
             return
@@ -176,7 +176,7 @@ class CampQueue(commands.Cog):
         userid, display_name = await get_userid_and_name(ctx, userid)
         if not userid:
             return
-        removed = await self.remove_rep(ctx, userid)
+        removed = await db.remove_replacement(ctx.guild.id, user_id)
         if removed is None:
             await ctx.send_response(content=f'User is not in queue')
             return
@@ -215,7 +215,7 @@ class CampQueue(commands.Cog):
     @is_admin()
     @is_command_channel()
     async def _adminrepclear(self, ctx):
-        res = await self.clear_reps()
+        res = await db.clear_replacement_queue(ctx.guild.id)
         if not res:
             await ctx.send_response(content=f'Problem occured while clearing camp queue.')
             return

@@ -406,7 +406,7 @@ async def get_replacements_before_user(guild_id, user_id) -> list:
     res = []
     async with aiosqlite.connect('data/urnby.db') as db:
         db.row_factory = aiosqlite.Row
-        query = f"""SELECT * FROM reps WHERE server = {guild_id} AND in_timestamp<{rep['in_timestamp']}"""
+        query = f"""SELECT * FROM reps WHERE "server" = {guild_id} AND "in_timestamp" < {rep['in_timestamp']}"""
         async with db.execute(query) as cursor:
             rows = await cursor.fetchall()
             res = [dict(row) for row in rows]
