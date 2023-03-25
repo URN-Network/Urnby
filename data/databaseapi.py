@@ -389,7 +389,7 @@ async def get_replacement(guild_id, user_id):
     res = {}
     async with aiosqlite.connect('data/urnby.db') as db:
         db.row_factory = aiosqlite.Row
-        query = f"SELECT * FROM reps WHERE server = {guild_id} AND user = {user_id}"
+        query = f'''SELECT * FROM reps WHERE "server" = {guild_id} AND "user" = {user_id}'''
         async with db.execute(query) as cursor:
             rows = await cursor.fetchall()
             if len(rows) < 1:

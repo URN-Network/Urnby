@@ -186,7 +186,7 @@ class Clocks(commands.Cog):
                 '_DEBUG_delta': '',
             }
         content = ''
-        older_reps = await db.get_replacements_before_user(ctx, ctx.author.id)
+        older_reps = await db.get_replacements_before_user(ctx.guild.id, ctx.author.id)
         if older_reps:
             view = SkipQueueView()
             await ctx.send_response("There are members ahead of you in the rep queue, are you sure you want to remove them from the queue and skip to clockin?", view=view)
@@ -208,7 +208,7 @@ class Clocks(commands.Cog):
                     content += f'<@{rep["user"]}> '
                 content += '\n'
                 
-        rep_removed = await db.remove_replacement(ctx, ctx.author.id)
+        rep_removed = await db.remove_replacement(ctx.guild.id, ctx.author.id)
         
         content += f'{ctx.author.display_name} {com.scram("Successfully")} clocked in at <t:{doc["in_timestamp"]}:f>'
         if rep_removed is not None:
@@ -288,7 +288,7 @@ class Clocks(commands.Cog):
                                    _out.timestamp()-bonus_in.timestamp(), 
                                    bonus_out.timestamp()-_in.timestamp(), 
                                    bonus_out.timestamp()-bonus_in.timestamp()))
-                    duration = int(duration * (bonus['pct']/100))
+                    duration = int(duration * (float(bonus['pct'])/100))
                     start = _in if _in > bonus_in else bonus_in
                     rec = copy.deepcopy(record)
                     rec['character'] = f'{bonus["pct"]}_PCT_BONUS_{bonus["start"]}_TO_{bonus["end"]} {row}'
