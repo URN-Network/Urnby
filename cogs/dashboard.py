@@ -111,7 +111,8 @@ class Dashboard(commands.Cog):
         if self.printer.next_iteration:
             delta = self.printer.next_iteration - now
         await ctx.send_response(content=f'Time till dashboard refresh check {delta}')
-        
+    '''
+    
     @commands.slash_command(name="dashboardrefresh")
     @is_member()
     @is_command_channel()
@@ -120,9 +121,10 @@ class Dashboard(commands.Cog):
         session = await db.get_session(ctx.guild.id)
         if self.delay.get(ctx.guild.id) and not session:
             self.delay[ctx.guild.id] = False
-        await self._purge_dashboard(ctx.guild)
-        await ctx.send_response(f"Enabling refresh for the next dashboard update")
-    '''
+            await ctx.send_response(f"Enabling refresh for the next dashboard update")
+        else:
+            self.delay[ctx.guild.id] = False
+            await ctx.send_response(f"Refeshing should be enabled. Forcing update, if no update comes, contact admin")
     
     async def _purge_dashboard(self, guild):
         def chk(msg):
