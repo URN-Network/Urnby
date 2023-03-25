@@ -176,7 +176,7 @@ class CampQueue(commands.Cog):
         userid, display_name = await get_userid_and_name(ctx, userid)
         if not userid:
             return
-        removed = await db.remove_replacement(ctx.guild.id, user_id)
+        removed = await db.remove_replacement(ctx.guild.id, userid)
         if removed is None:
             await ctx.send_response(content=f'User is not in queue')
             return
@@ -216,7 +216,7 @@ class CampQueue(commands.Cog):
     @is_command_channel()
     async def _adminrepclear(self, ctx):
         res = await db.clear_replacement_queue(ctx.guild.id)
-        if not res:
+        if res is None:
             await ctx.send_response(content=f'Problem occured while clearing camp queue.')
             return
         await ctx.send_response(content=f'Camp Queue cleared.')
