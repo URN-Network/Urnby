@@ -29,8 +29,8 @@ class Tod(commands.Cog):
         if missing_tables:
             print(f"Warning, ToD reports missing the following tables in db: {missing_tables}")
     
-    @commands.slash_command(name='tod', description='Simplified tod, takes required parameter of minutes ago')
-    async def _tod(self, ctx, ago: discord.Option(int, name='minutes_ago', description="Minutes since tod, can be 0" , required=True)):
+    @commands.slash_command(name='todnow', description='Simplified tod, takes required parameter of minutes ago')
+    async def _tod_now(self, ctx, ago: discord.Option(int, name='minutes_ago', description="Minutes since tod, can be 0" , required=True)):
         now = com.get_current_datetime()
             
         tod_datetime = now - datetime.timedelta(minutes=ago)
