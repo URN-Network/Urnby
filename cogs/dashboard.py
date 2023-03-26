@@ -13,9 +13,11 @@ from discord.ext import commands, tasks
 # Internal
 import data.databaseapi as db
 import static.common as com
+from checks.IsAdmin import is_admin, NotAdmin
 from checks.IsCommandChannel import is_command_channel, NotCommandChannel
 from checks.IsMemberVisible import is_member_visible, NotMemberVisible
 from checks.IsMember import is_member, NotMember
+from checks.IsInDev import is_in_dev, InDevelopment
 
 REFRESH_TYPE = 'seconds'
 REFRESH_TIME = 60
@@ -83,7 +85,50 @@ class Dashboard(commands.Cog):
         self.dash_mobile_message = {}
         print('Initilization on dashboard complete')
         
-            
+    # ==============================================================================
+    # Error Handlers
+    # ==============================================================================
+    async def cog_command_error(self, ctx: commands.Context, error: commands.CommandError):
+        now = com.get_current_datetime()
+        guild_id = None
+        channel_name = None
+        if not ctx.guild:
+            guild_id = 'DM'
+            channel_name = 'DM'
+        else:
+            guild_id = ctx.guild.id
+            channel_name = ctx.channel.name
+        print(f'{now.isoformat()} [{guild_id}] - Error in command {ctx.command.qualified_name} by {ctx.author.name} - {ctx.author.id} {error}', flush=True)
+        _error = {
+            'level': 'error', 
+            'command_name': ctx.command.qualified_name, 
+            'options': str(ctx.selected_options), 
+            'author_id': ctx.author.id, 
+            'author_name': ctx.author.name, 
+            'channel_name': channel_name, 
+            'error': str(type(error)),
+        }
+        
+        if isinstance(error, NotAdmin):
+            await ctx.send_response(content=f"You do not have permissions to use this function, {ctx.command} - {ctx.selected_options}")
+            return
+        elif isinstance(error, NotCommandChannel):
+            await ctx.send_response(content=f"You can not perform this command in this channel", ephemeral=True)
+            return
+        elif isinstance(error, NotMemberVisible):
+            await ctx.send_response(content=f"This command can not be performed where other members can not see the command", ephemeral=True)
+            return
+        elif isinstance(error, NotMember):
+            await ctx.send_response(content=f"You must be a member of higher privileges to invoke this command", ephemeral=False)
+            return
+        elif isinstance(error, InDevelopment):
+            await ctx.send_response(content=f"This function is unavailable due to it's development status", ephemeral=True)
+            return
+        else:
+            print(type(error), flush=True)
+            raise error
+        return
+ 
     @commands.Cog.listener()
     async def on_ready(self):
         missing_tables = await db.check_tables(['historical', 'session', 'session_history', 'active', 'tod'])
