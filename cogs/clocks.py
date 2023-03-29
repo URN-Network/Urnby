@@ -567,7 +567,7 @@ class Clocks(commands.Cog):
     @commands.user_command(name="Get User Time")
     @is_member()
     async def _get_user_time(self, ctx, member: discord.Member):
-        secs = await db.get_user_seconds(ctx.guild.id, userid)
+        secs = await db.get_user_seconds(ctx.guild.id, member.id)
         tot = com.get_hours_from_secs(secs)
         await ctx.send_response(content=f'{member.display_name} has accrued {tot:.2f} hours. ({secs} seconds)', ephemeral=True)
     
