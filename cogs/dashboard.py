@@ -249,7 +249,9 @@ class Dashboard(commands.Cog):
                 if member:
                     item['display_name'] = member.display_name
                 for _item in mem_historical:
-                   item['ses_delta'] += com.get_hours_from_secs(_item['out_timestamp'] - _item['in_timestamp'])
+                    if "PCT_BONUS" in _item['character']:
+                        continue
+                    item['ses_delta'] += com.get_hours_from_secs(_item['out_timestamp'] - _item['in_timestamp'])
                 item['ses_delta'] = round(item['ses_delta'], 2)
             
             if not session_real:
