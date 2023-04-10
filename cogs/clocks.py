@@ -448,6 +448,8 @@ class Clocks(commands.Cog):
         content_container = []
         content = '_ _\nUsers sorted by total time:'
         for idx, item in enumerate(sorted_res):
+            if item["total"] <= 0:
+                continue
             content += f'\n#{idx+1} <@{item["user"]}> has {item["total"]:.2f}'
             if len(content) >= 1850:
                 clip_idx = content.rfind('\n', 0, 1850)

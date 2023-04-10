@@ -427,6 +427,16 @@ async def get_unique_users(guild_id) -> list[int]:
             res = [row['user'] for row in rows]
     return res
 
+async def get_user_last_session(guild_id, user):
+    res = []
+    async with aiosqlite.connect('data/urnby.db') as db:
+        db.row_factory = aiosqlite.Row
+        query = f'SELECT rowid, * FROM historical WHERE "server" = {guild_id} AND "user" = {user} ORDER BY out_timestamp DESC LIMIT 1'
+        async with db.execute(query) as cursor:
+            rows = await cursor.fetchall()
+            res = [dict(row) for row in rows]
+    return res[0]
+
 async def get_user_seconds(guild_id, user, guild_historical=None):
     
     if not guild_historical:
