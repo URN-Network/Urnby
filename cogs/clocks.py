@@ -611,6 +611,8 @@ class Clocks(commands.Cog):
                 catagory = " S"
             elif item['character'] == "QUAKE_DS_BONUS":
                 catagory = " Q"
+            elif item['character'] == "RECRUIT_BONUS":
+                catagory = " R"
             tz = com.get_timezone_str()
             content += f"\n{item['rowid']:5} {_in.date().isoformat()} - {item['session'][:50]:50}  {catagory} from {_in.time()} {_in.strftime('%Z')} to {_out.time()} {_out.strftime('%Z')} for {ses_hours} {_timetype.lower()}"
             # Max message length is 2000, give 100 leway for title/user hours ending

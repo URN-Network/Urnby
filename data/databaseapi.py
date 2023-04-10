@@ -222,6 +222,29 @@ async def get_historical_user(guild_id, user_id):
             res = [dict(row) for row in rows]
     return res
     
+async def get_historical_user_current_hours(guild_id, user_id):
+    res = []
+    async with aiosqlite.connect('data/urnby.db') as db:
+        db.row_factory = aiosqlite.Row
+        query = f"SELECT rowid, * FROM historical WHERE server = {guild_id} AND user = {user_id} AND character LIKE 'URN_ZERO_OUT_EVENT%' ORDER BY out_timestamp DESC LIMIT 1"
+        last_urn = 0
+        async with db.execute(query) as cursor:
+            rows = await cursor.fetchall()
+            last_urn = [dict(row) for row in rows][0]['in_timestamp']
+        query = f"SELECT rowid, * FROM historical WHERE server = {guild_id} AND user = {user_id} AND out_timestamp > {last_urn}"
+        async with db.execute(query) as cursor:
+            rows = await cursor.fetchall()
+            res = [dict(row) for row in rows]
+    return res
+    
+async def get_historical_user_current_bonus(guild_id, user_id):
+    cur = get_historical_user_current_hours(guild_id, user_id)
+    res = []
+    for item in cur:
+        if "BONUS" in item['character']:
+            res.append(item)
+    return
+    
 async def get_historical_record(guild_id, rowid):
     res = []
     async with aiosqlite.connect('data/urnby.db') as db:
@@ -455,12 +478,44 @@ async def get_user_seconds(guild_id, user, guild_historical=None):
     for item in found:
         in_tot += item['in_timestamp']
         out_tot += item['out_timestamp']
-    return out_tot - in_tot
+    return int(out_tot - in_tot)
+
+async def get_user_seconds_v2(guild_id, user, guild_historical=None):
+    
+    if not guild_historical:
+        guild_historical = await get_historical(guild_id)
+    
+    if not guild_historical:
+        return None
+        
+    found = [_ for _ in guild_historical if _['user'] == int(user)]
+    
+    if len(found) == 0:
+        return 0
+    
+    in_tot = 0
+    out_tot = 0
+    bonus_in_tot = 0
+    bonus_out_tot = 0
+    for item in found:
+        in_tot += item['in_timestamp']
+        out_tot += item['out_timestamp']
+        if "BONUS" in item['character']:
+            bonus_in_tot += item['in_timestamp']
+            bonus_out_tot += item['out_timestamp']
+    return {'total': int(out_tot - in_tot), 'bonus_total': int(bonus_out_tot - bonus_in_tot)}
 
 async def get_user_hours(guild_id, user, guild_historical=None, limit=None) -> float:
     secs = await get_user_seconds(guild_id, user, guild_historical)
     
     return get_hours_from_secs(secs)
+
+async def get_user_hours_v2(guild_id, user, guild_historical=None, limit=None) -> float:
+    secs = await get_user_seconds_v2(guild_id, user, guild_historical)
+    
+    hours = {'total': get_hours_from_secs(secs['total']), 'bonus_total': get_hours_from_secs(secs['bonus_total'])}
+    
+    return hours
 
 # Wraps get_users_hours but only needs one grab from historical json
 async def get_users_hours(guild_id, users, limit=None) -> list[dict]:
@@ -472,6 +527,20 @@ async def get_users_hours(guild_id, users, limit=None) -> list[dict]:
     for user in users:
         tot = await get_user_hours(guild_id, user, guild_historical, limit=limit)
         res.append({'user': user, 'total':tot})
+    sorted_res = list(sorted(res, key= lambda user: user['total'], reverse=True))
+    if limit:
+        sorted_res = sorted_res[:limit]
+    return sorted_res
+    
+async def get_users_hours_v2(guild_id, users, limit=None) -> list[dict]:
+    guild_historical = await get_historical(guild_id)
+    res = []
+    if not guild_historical:
+        return res
+    
+    for user in users:
+        tot = await get_user_hours_v2(guild_id, user, guild_historical, limit=limit)
+        res.append({'user': user, 'total':tot['total'], 'bonus_total': tot['bonus_total']})
     sorted_res = list(sorted(res, key= lambda user: user['total'], reverse=True))
     if limit:
         sorted_res = sorted_res[:limit]

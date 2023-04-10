@@ -344,24 +344,36 @@ class Dashboard(commands.Cog):
             
             col1 = get_col1()
             col2 = get_col2()
-            now = com.get_current_datetime().time().isoformat()
-            desktop_dash = f'_Last Updated: {now}_```ansi\n'
+            now = com.get_current_datetime()
+            rec = await db.get_tod(guild.id)
+            if rec:
+                spawn_timestamp = int((datetime.datetime.fromtimestamp(rec["tod_timestamp"]) + datetime.timedelta(days=1)).timestamp())
+             
+            title = f'_Last Updated: {now.time().isoformat()}.'
+            if rec and spawn_timestamp > now.timestamp():
+                title += f' DS Spawn at <t:{spawn_timestamp}>'
+            title += f'_ ```ansi\n'
+            tail = "```\n"
+            
+            desktop_dash = title
             for idx, _ in enumerate(col1):
                 div = '|'
                 if idx == 1:
                     div = '-'
                 desktop_dash += col1[idx] + div + col2[idx] + '\n'
-            desktop_dash += "```\n"
+            desktop_dash += tail
             
             mcol1 = get_col1(True)
             mcol2 = get_col2(True)
-            mobile_dash = f'_Last Updated: {now}_```ansi\n'
+            
+            mobile_dash = title
+            
             for idx in range(len(mcol1)):
                 mobile_dash += mcol1[idx] + '\n'
             mobile_dash += '\n' + get_seperator(True) + '\n'
             for idx in range(len(mcol2)):
                 mobile_dash += mcol2[idx] + '\n'
-            mobile_dash += "```\n"
+            mobile_dash += tail
             
             
             if not session_real:
