@@ -158,7 +158,7 @@ class Clocks(commands.Cog):
     @is_member()
     @is_member_visible()
     @is_command_channel()
-    async def _clockin(self, ctx, character: discord.Option(str, name='character', required=False, default='')):
+    async def _clockin(self, ctx):
         # Session Check
         session = await db.get_session(ctx.guild.id)
         if not session:
@@ -176,7 +176,7 @@ class Clocks(commands.Cog):
         # Create entry and store
         doc = {
                 'user': ctx.author.id,
-                'character': character,
+                'character': '',
                 'session': session['session'],
                 'in_timestamp': int(now.timestamp()),
                 'out_timestamp': '',
@@ -254,7 +254,7 @@ class Clocks(commands.Cog):
             row = await db.store_new_historical(ctx.guild.id, item)
             tot = await db.get_user_hours(ctx.guild.id, member.id)
             
-            await ctx.send_followup(content=f'{member.display_name} Obtained bonus hours, stored record #{row} for {item["_DEBUG_delta"]} hours. Your total is at {round(tot, 2)}')
+            await ctx.send_followup(content=f'{member.display_name} Obtained bonus hours, stored record #{row} for {item["_DEBUG_delta"]} hours. Your total is at {tot}')
     
     @commands.user_command(name="Clockout User")
     @is_member()
@@ -267,7 +267,7 @@ class Clocks(commands.Cog):
         for item in bonus_sessions:
             row = await db.store_new_historical(ctx.guild.id, item)
             tot = await db.get_user_hours(ctx.guild.id, member.id)
-            await ctx.send_followup(content=f'{member.display_name} Obtained bonus hours, stored record #{row} for {item["_DEBUG_delta"]} hours. User total is at {round(tot, 2)}')
+            await ctx.send_followup(content=f'{member.display_name} Obtained bonus hours, stored record #{row} for {item["_DEBUG_delta"]} hours. User total is at {tot}')
         return
     
     async def get_bonus_sessions(self, guild_id, record, row):
@@ -333,7 +333,7 @@ class Clocks(commands.Cog):
             return {'status': False, 'record': record, 'row': None, 'content': f'Failed to store record to historical, contact admin\n{found}'}
         tot = await db.get_user_hours(ctx.guild.id, user_id)
         user = await ctx.guild.fetch_member(user_id)
-        return {'status': True,'record': record, 'row': res, 'content': f'{user.display_name} {com.scram("Successfully")} clocked out at <t:{record["out_timestamp"]}>, stored record #{res} for {record["_DEBUG_delta"]} hours. Your total is at {round(tot, 2)}'}
+        return {'status': True,'record': record, 'row': res, 'content': f'{user.display_name} {com.scram("Successfully")} clocked out at <t:{record["out_timestamp"]}>, stored record #{res} for {record["_DEBUG_delta"]} hours. Your total is at {tot}'}
     
     # ==============================================================================
     # Session Commands
@@ -437,25 +437,25 @@ class Clocks(commands.Cog):
     
     @commands.slash_command(name='list', description='Ephemeral optional - Gets list of users that have accrued time, ordered by highest hours urned')
     @is_member()
-    async def _list(self, ctx, public: discord.Option(bool, name='public', default=False)):
+    async def _list(self, ctx, public: discord.Option(bool, name='public', default=False)
+                             , zeros: discord.Option(bool, name='includezeros', default=False)):
         # List all users in ranked order
         # get unique users
         users = await db.get_unique_users(ctx.guild.id)
         
-        res = await db.get_users_hours(ctx.guild.id, users)
+        res = await db.get_users_hours_v2(ctx.guild.id, users)
         
-        sorted_res = sorted(res, key= lambda user: user['total'], reverse=True)
         content_container = []
         content = '_ _\nUsers sorted by total time:'
-        for idx, item in enumerate(sorted_res):
-            if item["total"] <= 0:
+        for idx, item in enumerate(res):
+            if item["total"] <= 0 and not zeros:
                 continue
-            content += f'\n#{idx+1} <@{item["user"]}> has {item["total"]:.2f}'
+            content += f'\n#{idx+1} <@{item["user"]}> has {item["total"]:.2f}. Lifetime: {item["lifetime_total"]} ({round((item["bonus_total"]/item["lifetime_total"]*100),2)}% via bonus) {"⚱️"*item["urns"]}'
             if len(content) >= 1850:
                 clip_idx = content.rfind('\n', 0, 1850)
                 content_container.append(content[:clip_idx])
                 content = '_ _'+content[clip_idx:]
-        if sorted_res:
+        if res:
             content_container.append(content)
         
         await ctx.send_response(content=content_container[0], ephemeral=not public, allowed_mentions=discord.AllowedMentions(users=False))
@@ -571,7 +571,8 @@ class Clocks(commands.Cog):
     async def _get_user_time(self, ctx, member: discord.Member):
         secs = await db.get_user_seconds(ctx.guild.id, member.id)
         tot = com.get_hours_from_secs(secs)
-        await ctx.send_response(content=f'{member.display_name} has accrued {tot:.2f} hours. ({secs} seconds)', ephemeral=True)
+        last = await db.get_hisorical_user_last_record(ctx.guild.id, member.id)
+        await ctx.send_response(content=f'{member.display_name} has accrued {tot:.2f} hours. ({secs} seconds). Last record at <t:{int(last["out_timestamp"])}>', ephemeral=True)
     
     @get_group.command(name="usersessions", description='Ephemeral - Get list of user\'s historical sessions')
     @is_member()

@@ -45,7 +45,7 @@ class Tod(commands.Cog):
                "_DEBUG_tod_datetime": tod_datetime.isoformat(), 
                }
         row = await db.store_tod(ctx.guild.id, rec)
-        await ctx.send_response(content=f"Set tod at {rec['_DEBUG_tod_datetime']}, spawn will happen at {(tod_datetime+datetime.timedelta(days=1)).isoformat()}")
+        await ctx.send_response(content=f"Set tod at {rec['_DEBUG_tod_datetime']}, Local: <t:{int(now.timestamp())}>. DSpawn will happen at {(tod_datetime+datetime.timedelta(days=1)).isoformat()}, Local: <t:{int((tod_datetime+datetime.timedelta(days=1)).timestamp())}>")
         return
         
     @commands.slash_command(name='settod', description='Set tod to a more specific time, with optional parameter for yesterday')
@@ -77,7 +77,7 @@ class Tod(commands.Cog):
                "_DEBUG_tod_datetime": tod_datetime.isoformat(), 
                }
         row = await db.store_tod(ctx.guild.id, rec)
-        await ctx.send_response(content=f"Set tod at {rec['_DEBUG_tod_datetime']}, spawn will happen at {(tod_datetime+datetime.timedelta(days=1)).isoformat()}")
+        await ctx.send_response(content=f"Set tod at {rec['_DEBUG_tod_datetime']}, Local: <t:{int(now.timestamp())}>. DSpawn will happen at {(tod_datetime+datetime.timedelta(days=1)).isoformat()}, Local: <t:{int((tod_datetime+datetime.timedelta(days=1)).timestamp())}>")
         return
     
     @add_to_group('get')
@@ -89,7 +89,7 @@ class Tod(commands.Cog):
         if not hours_till:
             await ctx.send_response(content=f"Last ToD was {rec['_DEBUG_tod_datetime']} unknown upcoming spawn", ephemeral=True)
             return
-        await ctx.send_response(content=f"Last ToD was {rec['_DEBUG_tod_datetime']} {rec['mob']} will spawn in {hours_till} hours", ephemeral=True)
+        await ctx.send_response(content=f"Last ToD was {rec['_DEBUG_tod_datetime']} {rec['mob']} will spawn in {hours_till} hours at <t:{int(now.timestamp())}> local", ephemeral=True)
 
 async def time_delta_to_minutes(delta:datetime.timedelta) -> float:
     secs = delta.total_seconds()

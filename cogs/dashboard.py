@@ -22,6 +22,8 @@ from checks.IsInDev import is_in_dev, InDevelopment
 REFRESH_TYPE = 'seconds'
 REFRESH_TIME = 60
 CAMP_HOURS_TILL_DS = 18
+HOURS_SOFTCAP = 6
+MOBILE_REDUCE_SPACE = 10
 
 DEBUG = os.getenv('DEBUG')
 if DEBUG:
@@ -212,6 +214,7 @@ class Dashboard(commands.Cog):
             now = com.get_current_datetime()
             tod_dict = await db.get_tod(guild.id, mob_name="Drusella Sathir")
             mins_till_ds_str = "Unknown"
+            mins_till_ds = -1
             if tod_dict:
                 tod_datetime = com.datetime_from_timestamp(tod_dict['tod_timestamp']) + datetime.timedelta(days=1)
                 mins_till_ds = int((tod_datetime - now).total_seconds()/com.SECS_IN_MINUTE)
@@ -285,14 +288,14 @@ class Dashboard(commands.Cog):
             def get_seperator(mobile=False):
                 reduce = 0
                 if mobile:
-                    reduce = 10
+                    reduce = MOBILE_REDUCE_SPACE
                 return f"{'-'*(50-reduce)}"
             
-            def get_col1(mobile=False):
+            async def get_col1(mobile=False):
                 col1 = []
                 reduce = 0
                 if mobile:
-                    reduce = 10
+                    reduce = MOBILE_REDUCE_SPACE
                 seperator = get_seperator(mobile)
                 # 1st column 50 spaces 
                 col1.append(f"{' Active Session':15}{_open:^{19-reduce}}{'DS in: ':7}{mins_till_ds_str:8}{' ':1}")
@@ -302,7 +305,7 @@ class Dashboard(commands.Cog):
                 col1.append(f"{' Active Users':<{34-reduce}}{'Current / Total':>15}{' ':1}") 
                 col1.append(seperator)
                 for item in actives:
-                    if item['ses_delta'] >= 6:
+                    if item['ses_delta'] >= HOURS_SOFTCAP:
                         color = TextColor.Red
                     else:
                         color = TextColor.Green
@@ -314,10 +317,16 @@ class Dashboard(commands.Cog):
                 now = com.get_current_datetime()
                 for item in camp_queue:
                     mins = int((now - com.datetime_from_timestamp(item['in_timestamp'])).total_seconds()/com.SECS_IN_MINUTE)
-                    col1.append(f"{' ' + item['name'][:41-reduce]:{43-reduce}}{' @ ':3}{mins:3}{' ':1}")
+                    tots = await db.get_user_hours_v2(guild.id, item['user'])
+                    if tots['session_total'] >= HOURS_SOFTCAP:
+                        color = TextColor.Red
+                    else:
+                        color = TextColor.Green
+                    formated_queue_item = ansi_format(f"{' ' + item['name'][:41-reduce]:{43-reduce}}{' @ ':3}{mins:3}{' ':1}", format=Format.Bold, color = color)
+                    col1.append(formated_queue_item)
                 return col1
             
-            def get_col2(mobile=False):
+            async def get_col2(mobile=False):
                 #Appending 2nd column
                 col2 = []
                 reduce = 0
@@ -342,12 +351,12 @@ class Dashboard(commands.Cog):
                     col2.append(f"{' ' + res[idx]['display_name'][:41-reduce]:{42-reduce}}{' ':1}{res[idx]['total']:>6.2f}{' ':1}{medal}")
                 return col2
             
-            col1 = get_col1()
-            col2 = get_col2()
+            col1 = await get_col1()
+            col2 = await get_col2()
             now = com.get_current_datetime()
             rec = await db.get_tod(guild.id)
             if rec:
-                spawn_timestamp = int((datetime.datetime.fromtimestamp(rec["tod_timestamp"]) + datetime.timedelta(days=1)).timestamp())
+                spawn_timestamp = int((com.datetime_from_timestamp(rec["tod_timestamp"]) + datetime.timedelta(days=1)).timestamp())
              
             title = f'_Last Updated: {now.time().isoformat()}.'
             if rec and spawn_timestamp > now.timestamp():
@@ -363,8 +372,8 @@ class Dashboard(commands.Cog):
                 desktop_dash += col1[idx] + div + col2[idx] + '\n'
             desktop_dash += tail
             
-            mcol1 = get_col1(True)
-            mcol2 = get_col2(True)
+            mcol1 = await get_col1(True)
+            mcol2 = await get_col2(True)
             
             mobile_dash = title
             
