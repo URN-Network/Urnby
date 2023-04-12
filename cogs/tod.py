@@ -77,7 +77,7 @@ class Tod(commands.Cog):
                "_DEBUG_tod_datetime": tod_datetime.isoformat(), 
                }
         row = await db.store_tod(ctx.guild.id, rec)
-        await ctx.send_response(content=f"Set tod at {rec['_DEBUG_tod_datetime']}, Local: <t:{int(now.timestamp())}>. DSpawn will happen at {(tod_datetime+datetime.timedelta(days=1)).isoformat()}, Local: <t:{int((tod_datetime+datetime.timedelta(days=1)).timestamp())}>")
+        await ctx.send_response(content=f"Set tod at {rec['_DEBUG_tod_datetime']} EST, Local: <t:{int(tod_datetime.timestamp())}>. DSpawn will happen at {(tod_datetime+datetime.timedelta(days=1)).isoformat()} EST, Local: <t:{int((tod_datetime+datetime.timedelta(days=1)).timestamp())}>")
         return
     
     @add_to_group('get')
