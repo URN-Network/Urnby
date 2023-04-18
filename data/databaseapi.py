@@ -553,7 +553,7 @@ async def get_user_seconds_v2(guild_id, user, guild_historical=None):
         if item['in_timestamp'] < item['out_timestamp']:
             lifetime_in_tot += item['in_timestamp']
             lifetime_out_tot += item['out_timestamp']
-        if session and item['session'] == session['session']:
+        if session and item['session'] == session['session'] and "BONUS" not in item['character']:
             session_in_tot += item['in_timestamp']
             session_out_tot += item['out_timestamp']
     return {'user': user, 'total': int(out_tot - in_tot), 

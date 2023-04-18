@@ -65,10 +65,16 @@ class Tod(commands.Cog):
             offset = -1
             
         if not tod_datetime:    
-            tod_datetime = com.datetime_combine((now.date().today()+datetime.timedelta(days=offset)).isoformat(), tod)
-            
+            tod_datetime = com.datetime_combine((now.date()+datetime.timedelta(days=offset)).isoformat(), tod)
+        
+        if tod_datetime.second or tod_datetime.microsecond:
+            exact = True
+        else:
+            exact = False
+        
         rec = {
                "mob": mobname, 
+               "exact": exact,
                "tod_timestamp": tod_datetime.timestamp(), 
                "submitted_timestamp": now.timestamp(), 
                "submitted_by_id": ctx.author.id,
