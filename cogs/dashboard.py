@@ -22,7 +22,7 @@ from checks.IsInDev import is_in_dev, InDevelopment
 REFRESH_TYPE = 'seconds'
 REFRESH_TIME = 60
 CAMP_HOURS_TILL_DS = 18
-HOURS_SOFTCAP = 6
+HOURS_SOFTCAP = 5
 MOBILE_REDUCE_SPACE = 10
 
 DEBUG = os.getenv('DEBUG')
