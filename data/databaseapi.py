@@ -588,16 +588,16 @@ async def get_users_hours_v2(guild_id, users, limit=None, trim_afk=False, print_
     start = time.perf_counter()
     for user in users:
         item = await get_user_hours_v2(guild_id, user, limit=limit)
-        if trim_afk:
-            now = get_current_timestamp()
-            cutoff = now - (SECS_IN_WEEK * 2)
-            if item['latest_in'] <= cutoff or item['latest_out'] <= cutoff:
-                if print_info:
-                    since = round((now - item['latest_out']) / SECS_IN_WEEK, 2)
-                    info = f'{item["user"]} - {item["display_name"]} hasnt clocked in within {since} weeks'
-                    if item["urns"]:
-                        info += f" and has obtained {item['urns']} urns"
-                    print(info)
+        now = get_current_timestamp()
+        cutoff = now - (SECS_IN_WEEK * 2)
+        if item['latest_in'] <= cutoff or item['latest_out'] <= cutoff:
+            if print_info:
+                since = round((now - item['latest_out']) / SECS_IN_WEEK, 2)
+                info = f'{item["user"]} - {item["display_name"]} hasnt clocked in within {since} weeks'
+                if item["urns"]:
+                    info += f" and has obtained {item['urns']} urns"
+                print(info, flush=True)
+            if trim_afk:
                 continue
         res.append(item)
     sorted_res = list(sorted(res, key= lambda user: user['total'], reverse=True))
