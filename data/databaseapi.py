@@ -590,7 +590,7 @@ async def get_users_hours_v2(guild_id, users, limit=None, trim_afk=False) -> lis
         if trim_afk:
             cutoff = get_current_timestamp() - (SECS_IN_WEEK * 2)
             if item['latest_in'] <= cutoff or item['latest_out'] <= cutoff:
-                print(f'{item["user"]} hasnt clocked in within 2 weeks')
+                #print(f'{item["user"]} hasnt clocked in within 2 weeks')
                 continue
         res.append(item)
     sorted_res = list(sorted(res, key= lambda user: user['total'], reverse=True))

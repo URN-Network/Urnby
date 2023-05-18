@@ -327,7 +327,7 @@ class Dashboard(commands.Cog):
                         ses_hours = f"{{{tots['session_total']}}}"
                     else:
                         color = TextColor.Green
-                    formated_queue_item = ansi_format(f"{' ' + item['name'][:35-reduce] + ses_hours:{37-reduce}}{' @ ':3}{mins:3}{' ':1}", format=Format.Bold, color = color)
+                    formated_queue_item = ansi_format(f"{' ' + item['name'][:35-reduce] +' '+ ses_hours:{43-reduce}}{' @ ':3}{mins:3}{' ':1}", format=Format.Bold, color = color)
                     col1.append(formated_queue_item)
                 return col1
             
