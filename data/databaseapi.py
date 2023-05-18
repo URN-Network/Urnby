@@ -569,6 +569,7 @@ async def get_user_seconds_v2(guild_id, user, guild_historical=None):
                           'urns': urns,
                           'latest_in': latest_in,
                           'latest_out': latest_out,
+                          'display_name': item['_DEBUG_user_name'],
                           }
 
 async def get_user_hours_v2(guild_id, user, limit=None) :
@@ -582,15 +583,21 @@ async def get_user_hours_v2(guild_id, user, limit=None) :
     
     return hours
 
-async def get_users_hours_v2(guild_id, users, limit=None, trim_afk=False) -> list[dict]:
+async def get_users_hours_v2(guild_id, users, limit=None, trim_afk=False, print_info= False) -> list[dict]:
     res = []
     start = time.perf_counter()
     for user in users:
         item = await get_user_hours_v2(guild_id, user, limit=limit)
         if trim_afk:
-            cutoff = get_current_timestamp() - (SECS_IN_WEEK * 2)
+            now = get_current_timestamp()
+            cutoff = now - (SECS_IN_WEEK * 2)
             if item['latest_in'] <= cutoff or item['latest_out'] <= cutoff:
-                #print(f'{item["user"]} hasnt clocked in within 2 weeks')
+                if print_info:
+                    since = round((now - item['latest_out']) / SECS_IN_WEEK, 2)
+                    info = f'{item["user"]} - {item["display_name"]} hasnt clocked in within {since} weeks'
+                    if item["urns"]:
+                        info += f" and has obtained {item['urns']} urns"
+                    print(info)
                 continue
         res.append(item)
     sorted_res = list(sorted(res, key= lambda user: user['total'], reverse=True))

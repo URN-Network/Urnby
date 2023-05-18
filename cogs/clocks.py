@@ -443,7 +443,7 @@ class Clocks(commands.Cog):
         # get unique users
         users = await db.get_unique_users(ctx.guild.id)
         
-        res = await db.get_users_hours_v2(ctx.guild.id, users)
+        res = await db.get_users_hours_v2(ctx.guild.id, users, print_info=True)
         
         content_container = []
         content = '_ _\nUsers sorted by total time:'
