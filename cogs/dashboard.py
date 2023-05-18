@@ -363,7 +363,7 @@ class Dashboard(commands.Cog):
             if rec:
                 spawn_timestamp = int((com.datetime_from_timestamp(rec["tod_timestamp"]) + datetime.timedelta(days=1)).timestamp())
              
-            title = f'_Last Updated: <t:{now.timestamp()}:R>.'
+            title = f'_Last Updated: <t:{int(now.timestamp())}:R>.'
             if rec and spawn_timestamp > now.timestamp():
                 title += f' DS Spawn <t:{spawn_timestamp}:R> at <t:{spawn_timestamp}>'
             title += f'_ ```ansi\n'
