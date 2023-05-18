@@ -1,6 +1,6 @@
 import aiosqlite
 import time
-from static.common import get_hours_from_secs, get_current_timestamp
+from static.common import get_hours_from_secs, get_current_timestamp, SECS_IN_WEEK
 
 async def check_tables(tbls):
     l = []
@@ -541,10 +541,16 @@ async def get_user_seconds_v2(guild_id, user, guild_historical=None):
     lifetime_out_tot = 0
     session_in_tot = 0
     session_out_tot = 0
+    latest_in = 0
+    latest_out = 0
     urns = 0
     for item in user_historical:
         in_tot += item['in_timestamp']
         out_tot += item['out_timestamp']
+        if item['in_timestamp'] > latest_in:
+            latest_in = item['in_timestamp']
+        if item['out_timestamp'] > latest_out:
+            latest_out = item['out_timestamp']
         if "URN_ZERO_OUT_EVENT" in item['character']:
             urns += 1
         if "BONUS" in item['character']:
@@ -560,7 +566,10 @@ async def get_user_seconds_v2(guild_id, user, guild_historical=None):
                           'bonus_total': int(bonus_out_tot - bonus_in_tot), 
                           'lifetime_total': int(lifetime_out_tot - lifetime_in_tot),
                           'session_total': int(session_out_tot - session_in_tot),
-                          'urns': urns}
+                          'urns': urns,
+                          'latest_in': latest_in,
+                          'latest_out': latest_out,
+                          }
 
 async def get_user_hours_v2(guild_id, user, limit=None) :
     secs = await get_user_seconds_v2(guild_id, user)
@@ -570,17 +579,22 @@ async def get_user_hours_v2(guild_id, user, limit=None) :
     hours['lifetime_total'] = get_hours_from_secs(secs['lifetime_total'])
     hours['session_total'] = get_hours_from_secs(secs['session_total'])
     
+    
     return hours
 
-async def get_users_hours_v2(guild_id, users, limit=None) -> list[dict]:
+async def get_users_hours_v2(guild_id, users, limit=None, trim_afk=False) -> list[dict]:
     res = []
     start = time.perf_counter()
     for user in users:
         item = await get_user_hours_v2(guild_id, user, limit=limit)
+        if trim_afk:
+            cutoff = get_current_timestamp() - (SECS_IN_WEEK * 2)
+            if item['latest_in'] <= cutoff or item['latest_out'] <= cutoff:
+                continue
         res.append(item)
     sorted_res = list(sorted(res, key= lambda user: user['total'], reverse=True))
     if limit:
         sorted_res = sorted_res[:limit]
     end = time.perf_counter()
-    print(f"user hours performance: {end-start}")
+    #print(f"user hours performance: {end-start}")
     return sorted_res

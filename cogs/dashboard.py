@@ -272,10 +272,10 @@ class Dashboard(commands.Cog):
             cont_lines = len(actives) + len(camp_queue)
             users = await db.get_unique_users(guild.id)
             
-            res = await db.get_users_hours(guild.id, users, limit = ex_lines+cont_lines)
+            res = await db.get_users_hours_v2(guild.id, users, limit = ex_lines+cont_lines, trim_afk=True)
             
             for item in res:
-                item['display_name'] = 'placeholder'
+                item['display_name'] = str(item['user'])
                 if guild.get_member(int(item['user'])):
                     item['display_name'] = next((x.display_name for x in guild.members if x.id == int(item['user'])), None)
                 else:
@@ -318,11 +318,16 @@ class Dashboard(commands.Cog):
                 for item in camp_queue:
                     mins = int((now - com.datetime_from_timestamp(item['in_timestamp'])).total_seconds()/com.SECS_IN_MINUTE)
                     tots = await db.get_user_hours_v2(guild.id, item['user'])
+                    ses_hours = ""
                     if tots['session_total'] >= HOURS_SOFTCAP:
                         color = TextColor.Red
+                        ses_hours = f"{{{tots['session_total']}}}"
+                    elif tot['session_total']:
+                        color = TextColor.Green
+                        ses_hours = f"{{{tots['session_total']}}}"
                     else:
                         color = TextColor.Green
-                    formated_queue_item = ansi_format(f"{' ' + item['name'][:41-reduce]:{43-reduce}}{' @ ':3}{mins:3}{' ':1}", format=Format.Bold, color = color)
+                    formated_queue_item = ansi_format(f"{' ' + item['name'][:35-reduce] + ses_hours:{37-reduce}}{' @ ':3}{mins:3}{' ':1}", format=Format.Bold, color = color)
                     col1.append(formated_queue_item)
                 return col1
             
@@ -360,7 +365,7 @@ class Dashboard(commands.Cog):
              
             title = f'_Last Updated: {now.time().isoformat()}.'
             if rec and spawn_timestamp > now.timestamp():
-                title += f' DS Spawn at <t:{spawn_timestamp}>'
+                title += f' DS Spawn <t:{spawn_timestamp}:R> at <t:{spawn_timestamp}>'
             title += f'_ ```ansi\n'
             tail = "```\n"
             

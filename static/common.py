@@ -10,6 +10,8 @@ ny_tz = timezone(tz_str)
 SECS_IN_MINUTE = 60
 MINUTE_IN_HOUR = 60
 SECS_IN_HOUR = MINUTE_IN_HOUR * SECS_IN_MINUTE
+SECS_IN_DAY = SECS_IN_HOUR * 24
+SECS_IN_WEEK = SECS_IN_DAY * 7
 
 def get_current_datetime() -> datetime.datetime:
     now = utc.localize(datetime.datetime.utcnow().replace(microsecond=0))
