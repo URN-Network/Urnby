@@ -322,7 +322,7 @@ class Dashboard(commands.Cog):
                     if tots['session_total'] >= HOURS_SOFTCAP:
                         color = TextColor.Red
                         ses_hours = f"{{{tots['session_total']}}}"
-                    elif tot['session_total']:
+                    elif tots['session_total']:
                         color = TextColor.Green
                         ses_hours = f"{{{tots['session_total']}}}"
                     else:
