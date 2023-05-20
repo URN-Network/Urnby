@@ -331,6 +331,15 @@ class Dashboard(commands.Cog):
                     len(urns)
                     user_urns = [x for x in urns if x['user'] == item['user']]
                     len(user_urns)
+                    
+                    if tots['session_total'] >= HOURS_SOFTCAP:
+                        color = TextColor.Red
+                        ses_hours = f"{{{tots['session_total']}}}"
+                    elif tots['session_total']:
+                        color = TextColor.Green
+                        ses_hours = f"{{{tots['session_total']}}}"
+                    else:
+                        color = TextColor.Green
                     if user_urns:
                         sorted(user_urns, key = lambda a: a['in_timestamp'])
                         for u in user_urns:
@@ -340,14 +349,6 @@ class Dashboard(commands.Cog):
                         print(int((now - datetime.timedelta(days=7)).timestamp()))
                         if user_urns[-1]['in_timestamp'] > int((now - datetime.timedelta(days=7)).timestamp()):
                             color = TextColor.Pink
-                    if tots['session_total'] >= HOURS_SOFTCAP:
-                        color = TextColor.Red
-                        ses_hours = f"{{{tots['session_total']}}}"
-                    elif tots['session_total']:
-                        color = TextColor.Green
-                        ses_hours = f"{{{tots['session_total']}}}"
-                    else:
-                        color = TextColor.Green
                     formated_queue_item = ansi_format(f"{' ' + item['name'][:35-reduce] +' '+ ses_hours:{43-reduce}}{' @ ':3}{mins:3}{' ':1}", format=Format.Bold, color = color)
                     col1.append(formated_queue_item)
                 return col1
