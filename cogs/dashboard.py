@@ -328,10 +328,7 @@ class Dashboard(commands.Cog):
                     mins = int((now - com.datetime_from_timestamp(item['in_timestamp'])).total_seconds()/com.SECS_IN_MINUTE)
                     tots = await db.get_user_hours_v2(guild.id, item['user'])
                     ses_hours = ""
-                    len(urns)
                     user_urns = [x for x in urns if x['user'] == item['user']]
-                    len(user_urns)
-                    
                     if tots['session_total'] >= HOURS_SOFTCAP:
                         color = TextColor.Red
                         ses_hours = f"{{{tots['session_total']}}}"
@@ -342,11 +339,6 @@ class Dashboard(commands.Cog):
                         color = TextColor.Green
                     if user_urns:
                         sorted(user_urns, key = lambda a: a['in_timestamp'])
-                        for u in user_urns:
-                            print(u)
-                        print(user_urns[-1]['in_timestamp'])
-                        print(int(now.timestamp()))
-                        print(int((now - datetime.timedelta(days=7)).timestamp()))
                         if user_urns[-1]['in_timestamp'] > int((now - datetime.timedelta(days=7)).timestamp()):
                             color = TextColor.Pink
                     formated_queue_item = ansi_format(f"{' ' + item['name'][:35-reduce] +' '+ ses_hours:{43-reduce}}{' @ ':3}{mins:3}{' ':1}", format=Format.Bold, color = color)
