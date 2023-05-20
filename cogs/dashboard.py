@@ -273,7 +273,7 @@ class Dashboard(commands.Cog):
             users = await db.get_unique_users(guild.id)
             
             res = await db.get_users_hours_v2(guild.id, users, limit = ex_lines+cont_lines, trim_afk=True)
-            urns = await db.get_urns_v2(guild.id)
+            
             for item in res:
                 item['display_name'] = str(item['user'])
                 if guild.get_member(int(item['user'])):
@@ -295,6 +295,7 @@ class Dashboard(commands.Cog):
                 col1 = []
                 reduce = 0
                 now = com.get_current_datetime()
+                urns = await db.get_urns_v2(guild.id)
                 if mobile:
                     reduce = MOBILE_REDUCE_SPACE
                 seperator = get_seperator(mobile)
@@ -327,7 +328,9 @@ class Dashboard(commands.Cog):
                     mins = int((now - com.datetime_from_timestamp(item['in_timestamp'])).total_seconds()/com.SECS_IN_MINUTE)
                     tots = await db.get_user_hours_v2(guild.id, item['user'])
                     ses_hours = ""
+                    len(urns)
                     user_urns = [x for x in urns if x['user'] == item['user']]
+                    len(user_urns)
                     if user_urns:
                         sorted(user_urns, key = lambda a: a['in_timestamp'])
                         for u in user_urns:
