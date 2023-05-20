@@ -330,6 +330,11 @@ class Dashboard(commands.Cog):
                     user_urns = [x for x in urns if x['user'] == item['user']]
                     if user_urns:
                         sorted(user_urns, key = lambda a: a['in_timestamp'])
+                        for u in user_urns:
+                            print(u)
+                        print(user_urns[-1]['in_timestamp'])
+                        print(int(now.timestamp()))
+                        print(int((now - datetime.timedelta(days=7)).timestamp()))
                         if user_urns[-1]['in_timestamp'] > int((now - datetime.timedelta(days=7)).timestamp()):
                             color = TextColor.Pink
                     if tots['session_total'] >= HOURS_SOFTCAP:
