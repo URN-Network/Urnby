@@ -520,6 +520,16 @@ async def get_urns(guild_id):
             rows = await cursor.fetchall()
             res = [row['user'] for row in rows]
     return res
+    
+async def get_urns_v2(guild_id):
+    res = []
+    async with aiosqlite.connect('data/urnby.db') as db:
+        db.row_factory = aiosqlite.Row
+        query = f"SELECT rowid, * FROM historical WHERE server = {guild_id} and character LIKE 'URN_ZERO_OUT_EVENT%'"
+        async with db.execute(query) as cursor:
+            rows = await cursor.fetchall()
+            res = [dict(row) for row in rows]
+    return res
 
 async def get_user_seconds_v2(guild_id, user, guild_historical=None):
     
