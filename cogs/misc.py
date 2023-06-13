@@ -6,7 +6,6 @@ import time
 # External
 import discord
 from discord.ext import commands
-from pycord.multicog import add_to_group
 
 # Internal
 import data.databaseapi as db
@@ -108,7 +107,6 @@ class Misc(commands.Cog):
         await db.init_database()
         await ctx.send_response(content=f"Database initialized")
     '''
-    @add_to_group('admin')
     @commands.slash_command(name='configadd', description='Add configuration item (not bonus hours)')
     @is_admin()
     async def _add_config(self, ctx, 
@@ -125,7 +123,6 @@ class Misc(commands.Cog):
         save_guild_config(str(ctx.guild.id), guild_config)
         await ctx.send_response(content=f"Config item set - {_key} = {guild_config[_key]}")
     
-    @add_to_group('admin')
     @commands.slash_command(name='configaddbonushours', description='Add a set of bonus hours')
     @is_admin()
     async def _add_config_bonus_hours(self, ctx, 
@@ -149,7 +146,6 @@ class Misc(commands.Cog):
         save_guild_config(str(ctx.guild.id), guild_config)
         await ctx.send_response(content=f"Config item set - bonus_hours = {guild_config['bonus_hours']}")
     
-    @add_to_group('admin')
     @commands.slash_command(name='configclearitem', description='Clear a configuration item, will need to set values again')
     @is_admin()
     async def _config_clear_item(self, ctx, _key: discord.Option(name="key", choices=array_config+value_config+special_config, required=True)):
@@ -158,7 +154,6 @@ class Misc(commands.Cog):
         save_guild_config(str(ctx.guild.id), guild_config)
         await ctx.send_response(content=f"Config item cleared - {_key} = {guild_config[_key]}")
     
-    @add_to_group('admin')
     @commands.slash_command(name='echo', description='Echo echo echo......')
     @is_admin()
     async def _echo(self, ctx, content: discord.Option(str, name='content', required=True)):

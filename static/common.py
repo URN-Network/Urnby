@@ -35,7 +35,7 @@ def datetime_from_iso(isostring:str) -> datetime.datetime:
 def datetime_combine(date, time) -> datetime.datetime:
     d = datetime.date.fromisoformat(date)
     t = datetime.time.fromisoformat(time)
-    return datetime.datetime.combine(d, t, tzinfo=ZoneInfo(tz_str))
+    return datetime.datetime.combine(d, t, tzinfo=ny_tz)
 
 def date_from_iso(isodatestring:str) -> datetime.date:
     return ny_tz.normalize(datetime.date.fromisoformat(isodatestring))

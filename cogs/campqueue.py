@@ -5,7 +5,6 @@ from enum import Enum
 # External
 import discord
 from discord.ext import commands
-from pycord.multicog import add_to_group
 
 # Internal
 import data.databaseapi as db
@@ -119,7 +118,6 @@ class CampQueue(commands.Cog):
             raise error
         return
 
-    @add_to_group('get')
     @commands.slash_command(name='reps', description='Display current list of replacements')
     @is_member()
     async def _getreps(self, ctx, public: discord.Option(bool, name='public', default=False)):
@@ -210,7 +208,6 @@ class CampQueue(commands.Cog):
             return
         await ctx.send_response(content=f'{display_name} Successfully removed from replacement queue')   
     '''
-    @add_to_group('admin')
     @commands.slash_command(name='repclear', description='Clears queue for replacements')
     @is_admin()
     @is_command_channel()

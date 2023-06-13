@@ -5,7 +5,6 @@ import json
 # External
 import discord
 from discord.ext import commands
-from pycord.multicog import add_to_group
 
 # Internal
 import static.common as com
@@ -86,7 +85,6 @@ class Tod(commands.Cog):
         await ctx.send_response(content=f"Set tod at {rec['_DEBUG_tod_datetime']} EST, Local: <t:{int(tod_datetime.timestamp())}>. DSpawn will happen at {(tod_datetime+datetime.timedelta(days=1)).isoformat()} EST, Local: <t:{int((tod_datetime+datetime.timedelta(days=1)).timestamp())}>")
         return
     
-    @add_to_group('get')
     @commands.slash_command(name='tod', description='Get current ToD record')
     async def _get_tod(self, ctx):
         rec = await db.get_tod(ctx.guild.id)

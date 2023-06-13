@@ -6,7 +6,6 @@ import logging
 from asyncio import sleep
 from dotenv import load_dotenv
 
-from pycord.multicog import apply_multicog
 
 import static.common as com
 import data.databaseapi as db
@@ -64,6 +63,5 @@ async def ownerrestart(ctx):
 for cog in cogs_list:
     UrnbyBot.load_extension(f'cogs.{cog}')
 
-apply_multicog(UrnbyBot)
 UrnbyBot.run(TOKEN)
 

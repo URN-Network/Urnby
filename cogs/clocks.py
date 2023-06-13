@@ -10,7 +10,6 @@ from pathlib import Path
 import discord
 from discord.ext import commands
 from aiosqlite import OperationalError
-from pycord.multicog import add_to_group
 
 # Internal
 import data.databaseapi as db
