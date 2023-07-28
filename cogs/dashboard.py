@@ -85,6 +85,7 @@ class Dashboard(commands.Cog):
         self.printer.start()
         self.dash_message = {}
         self.dash_mobile_message = {}
+        self.fail_count = 0
         print('Initilization on dashboard complete')
         
     # ==============================================================================
@@ -159,11 +160,12 @@ class Dashboard(commands.Cog):
             delta = self.printer.next_iteration - now
         await ctx.send_response(content=f'Time till dashboard refresh check {delta}')
     '''
-    
+        
     @commands.slash_command(name="dashboardrestart")
     @is_member()
     @is_command_channel()
     async def _dashboardrestart(self, ctx):
+        self.printer.cancel()
         self.printer.restart()
         await ctx.send_response(f"Restarting Dashboard")
     
@@ -201,6 +203,10 @@ class Dashboard(commands.Cog):
     
     @tasks.loop(**{REFRESH_TYPE:REFRESH_TIME})
     async def printer(self):
+        if fail_count > 10:
+            print("fail count above 10, stopping printer")
+            self.printer.stop()
+            return
         for guild in self.bot.guilds:
             try:
                 config = self.get_config(guild.id)
@@ -395,7 +401,9 @@ class Dashboard(commands.Cog):
                     div = '|'
                     if idx == 1:
                         div = '-'
-                    desktop_dash += col1[idx] + div + col2[idx] + '\n'
+                    if len(desktop_dash) < 1900:
+                        desktop_dash += col1[idx] + div + col2[idx]
+                    desktop_dash += '\n'
                 desktop_dash += tail
                 
                 mcol1 = await get_col1(True)
@@ -407,7 +415,8 @@ class Dashboard(commands.Cog):
                     mobile_dash += mcol1[idx] + '\n'
                 mobile_dash += '\n' + get_seperator(True) + '\n'
                 for idx in range(len(mcol2)):
-                    mobile_dash += mcol2[idx] + '\n'
+                    if len(mobile_dash) < 1900:
+                        mobile_dash += mcol2[idx] + '\n'
                 mobile_dash += tail
                 
                 
@@ -441,6 +450,10 @@ class Dashboard(commands.Cog):
             except discord.errors.DiscordServerError as e:
                 print("Couldnt connect to discord API")
                 print(full_stack())
+                continue
+            except Exception as e:
+                print(f"Printer raised unknown exception: {e}")
+                fail_count += 1
                 continue
 
     

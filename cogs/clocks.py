@@ -481,6 +481,9 @@ class Clocks(commands.Cog):
             return
         elif view.result == True:
             tot = await db.get_user_seconds(ctx.guild.id, ctx.author.id)
+            if tot < com.SECS_IN_HOUR:
+                await view.message.edit(content=f"You must have at least one hour accrued to collect an urn")
+                return
             session = await db.get_session(ctx.guild.id)
             session_name = ''
             if session:
@@ -614,7 +617,7 @@ class Clocks(commands.Cog):
             elif item['character'] == "RECRUIT_BONUS":
                 catagory = " R"
             tz = com.get_timezone_str()
-            content += f"\n{item['rowid']:5} {_in.date().isoformat()} - {item['session'][:50]:50}  {catagory} from {_in.time()} {_in.strftime('%Z')} to {_out.time()} {_out.strftime('%Z')} for {ses_hours} {_timetype.lower()}"
+            content += f"\n{item['rowid']:5} {_in.date().isoformat()} - {item['session'][:45]:45}  {catagory} from {_in.time()} {_in.strftime('%Z')} to {_out.time()} {_out.strftime('%Z')} for {ses_hours} {_timetype.lower()}"
             # Max message length is 2000, give 100 leway for title/user hours ending
             if len(content) >= 1850:
                 clip_idx = content.rfind('\n', 0, 1850)
