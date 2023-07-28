@@ -203,7 +203,7 @@ class Dashboard(commands.Cog):
     
     @tasks.loop(**{REFRESH_TYPE:REFRESH_TIME})
     async def printer(self):
-        if fail_count > 10:
+        if self.fail_count > 10:
             print("fail count above 10, stopping printer")
             self.printer.stop()
             return
@@ -453,7 +453,7 @@ class Dashboard(commands.Cog):
                 continue
             except Exception as e:
                 print(f"Printer raised unknown exception: {e}")
-                fail_count += 1
+                self.fail_count += 1
                 continue
 
     
