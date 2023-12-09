@@ -202,8 +202,15 @@ class Clocks(commands.Cog):
                 
                 content += '\n'
                 '''
-                content += f'Skipping {len(older_reps)} replacements and clocking {ctx.author.display_name} in. Alerting queuers to adjust their status: '
+                content += f'Skipping {len(older_reps)} replacements and clocking {ctx.author.display_name} in. Alerting queuers they have been sent to the back of the queue: '
                 for rep in older_reps:
+                    await db.remove_replacement(ctx.guild.id, rep["user"])
+                    rep = {
+                        'user': rep['user'],
+                        'name': rep['name'],
+                        'in_timestamp': com.get_current_timestamp(),
+                    }
+                    added = await db.add_replacement(ctx.guild.id, rep)
                     content += f'<@{rep["user"]}> '
                 content += '\n'
                 
