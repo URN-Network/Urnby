@@ -830,6 +830,8 @@ class Clocks(commands.Cog):
             data = [await db.get_session(ctx.guild.id)]
         elif data_type == 'commands':
             data = await db.get_commands_history(ctx.guild.id)
+        elif data_type == 'historicalsession':
+            data = await db.get_session_history(ctx.guild.id)
         else:
             await ctx.send_response(content='Option not available yet')
             return

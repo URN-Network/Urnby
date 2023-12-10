@@ -202,7 +202,17 @@ async def get_historical(guild_id):
             rows = await cursor.fetchall()
             res = [dict(row) for row in rows]
     return res
-    
+
+async def get_session_history(ctx.guild.id):
+    res = []
+    async with aiosqlite.connect('data/urnby.db') as db:
+        db.row_factory = aiosqlite.Row
+        query = f"SELECT rowid, * FROM session_history WHERE server = {guild_id}"
+        async with db.execute(query) as cursor:
+            rows = await cursor.fetchall()
+            res = [dict(row) for row in rows]
+    return res
+
 async def get_last_rows_historical(guild_id, count):
     res = []
     async with aiosqlite.connect('data/urnby.db') as db:
@@ -440,7 +450,7 @@ async def get_replacements_before_user(guild_id, user_id) -> list:
     res = []
     async with aiosqlite.connect('data/urnby.db') as db:
         db.row_factory = aiosqlite.Row
-        query = f"""SELECT * FROM reps WHERE "server" = {guild_id} AND "in_timestamp" < {rep['in_timestamp']}"""
+        query = f"""SELECT * FROM reps WHERE "server" = {guild_id} AND "in_timestamp" < {rep['in_timestamp']} ORDER BY in_timestamp DESC"""
         async with db.execute(query) as cursor:
             rows = await cursor.fetchall()
             res = [dict(row) for row in rows]
