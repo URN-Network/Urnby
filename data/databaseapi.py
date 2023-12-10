@@ -203,7 +203,7 @@ async def get_historical(guild_id):
             res = [dict(row) for row in rows]
     return res
 
-async def get_session_history(ctx.guild.id):
+async def get_session_history(guild_id):
     res = []
     async with aiosqlite.connect('data/urnby.db') as db:
         db.row_factory = aiosqlite.Row
