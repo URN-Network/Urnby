@@ -1,6 +1,9 @@
 import aiosqlite
 import time
 from static.common import get_hours_from_secs, get_current_timestamp, SECS_IN_WEEK
+from datetime import datetime
+
+HOURS_SOFTCAP = 5
 
 async def check_tables(tbls):
     l = []
@@ -296,6 +299,16 @@ async def delete_historical_record(guild_id, rowid):
         await db.commit()
     return res
     
+async def get_last_urn(guild_id, user_id):
+    query = f"SELECT rowid, * FROM historical WHERE server = {guild_id} AND user = {user_id} AND character LIKE 'URN_ZERO_OUT_EVENT%' ORDER BY in_timestamp DESC LIMIT 1"
+    last_urn = 0
+    async with db.execute(query) as cursor:
+        row = await cursor.fetchone()
+    if row:
+        return dict(row)
+    else:
+        return None
+    
     # ==============================================================================
     # Commands (commands table)
     # ============================================================================== 
@@ -377,10 +390,25 @@ async def get_replacement_queue(guild_id) -> list:
     res = []
     async with aiosqlite.connect('data/urnby.db') as db:
         db.row_factory = aiosqlite.Row
-        query = f"SELECT rowid, * FROM reps WHERE server = {guild_id} ORDER BY in_timestamp ASC"
+        query = f"SELECT rowid, * FROM reps WHERE server = {guild_id}"
         async with db.execute(query) as cursor:
             rows = await cursor.fetchall()
             res = [dict(row) for row in rows]
+    green_res = []
+    red_res = []
+    probation_res = []
+    for item in res:
+        
+        if get_user_hours_v2(guild_id, item['user']) > HOURS_SOFTCAP:
+            red_res.append(item)
+            continue
+        last_user_urn = get_last_urn(guild_id, item['user'])
+        if last_user_urn and last_user_urn['in_timestamp'] > int((get_current_timestamp() - datetime.timedelta(days=7)).timestamp()):
+            probation_res.append(item)
+            continue
+        green_res.append(item)
+        
+    res = green_res + red_res + probation_res
     return res
 
 async def add_replacement(guild_id, replacement):

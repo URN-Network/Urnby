@@ -17,7 +17,7 @@ from checks.IsMember import is_member, NotMember
 from checks.IsInDev import is_in_dev, InDevelopment
 
 array_config = ["member_roles", "admin_roles", "command_channels", "channel_stats"]
-value_config = ["max_active", "dashboard_channel", "mobile_dash_channel"]
+value_config = ["max_active", "dashboard_channel", "mobile_dash_channel", "camp_hour_count"]
 special_config = ["bonus_hours"]
 
 class Misc(commands.Cog):

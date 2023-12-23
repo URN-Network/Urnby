@@ -187,6 +187,9 @@ class Clocks(commands.Cog):
         content = ''
         older_reps = await db.get_replacements_before_user(ctx.guild.id, ctx.author.id)
         if older_reps:
+            await ctx.send_response("There are members ahead of you in the queue. You must be #1 in queue or there must not be a queue to clockin. Use /requestreps to alert #1 to join the camp or be removed from the queue if afk")
+            return
+            """
             view = SkipQueueView()
             await ctx.send_response("There are members ahead of you in the rep queue, are you sure you want to remove them from the queue and skip to clockin?", view=view)
             await view.wait()
@@ -213,7 +216,7 @@ class Clocks(commands.Cog):
                     added = await db.add_replacement(ctx.guild.id, rep)
                     content += f'<@{rep["user"]}> '
                 content += '\n'
-                
+            """
         rep_removed = await db.remove_replacement(ctx.guild.id, ctx.author.id)
         
         content += f'{ctx.author.display_name} {com.scram("Successfully")} clocked in at <t:{doc["in_timestamp"]}:f>'

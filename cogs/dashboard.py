@@ -21,7 +21,7 @@ from checks.IsInDev import is_in_dev, InDevelopment
 
 REFRESH_TYPE = 'seconds'
 REFRESH_TIME = 60
-CAMP_HOURS_TILL_DS = 18
+#CAMP_HOURS_TILL_DS = 18
 HOURS_SOFTCAP = 5
 MOBILE_REDUCE_SPACE = 10
 
@@ -72,7 +72,10 @@ def ansi_format(t: str, format : Format = Format.Normal, exformat : Format = Non
         res += ';' + str(color.value)
     res += format_end + t + uni_esc + format_start + str(Format.Normal.value) + format_end
     return res
-
+    
+def get_config(guild_id):
+    return json.load(open('data/config.json', 'r', encoding='utf-8')).get(str(guild_id))
+    
 class Dashboard(commands.Cog):
     
     def __init__(self, bot):
@@ -236,7 +239,7 @@ class Dashboard(commands.Cog):
                     else:
                         mins_till_ds_str = f'{mins_till_ds:4}mins'
                 _open = ""
-                if mins_till_ds >= 0 and mins_till_ds <= com.MINUTE_IN_HOUR * CAMP_HOURS_TILL_DS:
+                if mins_till_ds >= 0 and mins_till_ds <= com.MINUTE_IN_HOUR * get_config(guild.id).get("camp_hour_count", 18):
                     _open = "<OPEN>"
                     # If we are in delayed mode, and we havent refreshed with the new transition, refresh automatically
                     if self.delay.get(guild.id) and not self.open_transitioned.get(guild.id):
