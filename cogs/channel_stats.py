@@ -110,7 +110,7 @@ class Channel_Stats(commands.Cog):
             channel = None
             if config.get('campstatus_stats'):
                 _open = "<CLOSED"
-                if mins_till_ds >= 0 and mins_till_ds <= com.MINUTE_IN_HOUR * get_config(guild.id).get("camp_hour_count", 18)::
+                if mins_till_ds >= 0 and mins_till_ds <= com.MINUTE_IN_HOUR * get_config(guild.id).get("camp_hour_count", 18):
                     _open = "<OPEN"
                 if mins_till_ds < 0:
                     _open = "<UNKNOWN"
