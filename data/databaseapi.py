@@ -402,7 +402,7 @@ async def get_replacement_queue(guild_id) -> list:
         if user_hours > HOURS_SOFTCAP:
             red_res.append(item)
             continue
-        last_user_urn = get_last_urn(guild_id, item['user'])
+        last_user_urn = await get_last_urn(guild_id, item['user'])
         if last_user_urn and last_user_urn['in_timestamp'] > int((get_current_timestamp() - datetime.timedelta(days=7)).timestamp()):
             probation_res.append(item)
             continue
