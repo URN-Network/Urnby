@@ -302,12 +302,13 @@ async def delete_historical_record(guild_id, rowid):
 async def get_last_urn(guild_id, user_id):
     query = f"SELECT rowid, * FROM historical WHERE server = {guild_id} AND user = {user_id} AND character LIKE 'URN_ZERO_OUT_EVENT%' ORDER BY in_timestamp DESC LIMIT 1"
     last_urn = 0
-    async with db.execute(query) as cursor:
-        row = await cursor.fetchone()
-    if row:
-        return dict(row)
-    else:
-        return None
+    async with aiosqlite.connect('data/urnby.db') as db:
+        async with db.execute(query) as cursor:
+            row = await cursor.fetchone()
+        if row:
+            return dict(row)
+        else:
+            return None
     
     # ==============================================================================
     # Commands (commands table)
