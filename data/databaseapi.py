@@ -398,8 +398,8 @@ async def get_replacement_queue(guild_id) -> list:
     red_res = []
     probation_res = []
     for item in res:
-        
-        if get_user_hours_v2(guild_id, item['user']) > HOURS_SOFTCAP:
+        user_hours = await get_user_hours_v2(guild_id, item['user'])
+        if user_hours > HOURS_SOFTCAP:
             red_res.append(item)
             continue
         last_user_urn = get_last_urn(guild_id, item['user'])
