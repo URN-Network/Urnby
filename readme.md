@@ -30,10 +30,12 @@ Technical Info
 	Python dependancies are:
 	pycord - Python Discord API wrapper
 	pycord-multicog - pycord extention to split command groups into multiple cogs
-	dotenv - allows us to store secrets in environment, ignoreing the .env file to share code without sharing secrets (https://12factor.net/config)
+	python-dotenv - allows us to store secrets in environment, ignoreing the .env file to share code without sharing secrets (https://12factor.net/config)
 	pytz - Functionality for datetime timezones
 	aiosqlite - Non blocking wrapper for sqlite-python interfacing
 	tzdata - python for IANA time zone database
+
+	Dependencies can be installed through pip https://pip.pypa.io/en/stable/cli/pip_install/
 	
 	SQLite has WAL mode enabled to allow concurrent read/writes (https://www.sqlite.org/walformat.html)
 	
