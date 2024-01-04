@@ -259,9 +259,10 @@ class Clocks(commands.Cog):
         
         bonus_sessions = await self.get_bonus_sessions(ctx.guild.id, res['record'], res['row'])
         member = await ctx.guild.fetch_member(target)
-        for item in bonus_sessions:
-            row = await db.store_new_historical(ctx.guild.id, item)
-            tot = await db.get_user_hours(ctx.guild.id, member.id)
+        if bonus_sessions:
+            for item in bonus_sessions:
+                row = await db.store_new_historical(ctx.guild.id, item)
+                tot = await db.get_user_hours(ctx.guild.id, member.id)
             
             await ctx.send_followup(content=f'{member.display_name} Obtained bonus hours, stored record #{row} for {item["_DEBUG_delta"]} hours. Your total is at {tot}')
     
