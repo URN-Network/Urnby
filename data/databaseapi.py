@@ -245,6 +245,8 @@ async def get_hisorical_user_last_record(guild_id, user_id):
         query = f"SELECT rowid, * FROM historical WHERE server = {guild_id} AND user = {user_id} ORDER BY out_timestamp DESC LIMIT 1"
         async with db.execute(query) as cursor:
             rows = await cursor.fetchall()
+            if not rows:
+                return []
             res = [dict(row) for row in rows][0]
     return res
 
