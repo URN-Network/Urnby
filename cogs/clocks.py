@@ -248,6 +248,7 @@ class Clocks(commands.Cog):
             return
         
         bonus_sessions = await self.get_bonus_sessions(ctx.guild.id, res['record'], res['row'])
+        bonus_sessions = bonus_sessions if bonus_sessions else []
         member = await ctx.guild.fetch_member(target)
         for item in bonus_sessions:
             row = await db.store_new_historical(ctx.guild.id, item)
@@ -263,6 +264,7 @@ class Clocks(commands.Cog):
         if res['status'] == False:
             return
         bonus_sessions = await self.get_bonus_sessions(ctx.guild.id, res['record'], res['row'])
+        bonus_sessions = bonus_sessions if bonus_sessions else []
         for item in bonus_sessions:
             row = await db.store_new_historical(ctx.guild.id, item)
             tot = await db.get_user_hours(ctx.guild.id, member.id)
@@ -412,6 +414,7 @@ class Clocks(commands.Cog):
                         fails.append(active)
                         continue
                     bonus_sessions = await self.get_bonus_sessions(ctx.guild.id, res['record'], res['row'])
+                    bonus_sessions = bonus_sessions if bonus_sessions else []
                     for item in bonus_sessions:
                         row = await db.store_new_historical(ctx.guild.id, item)
                         close_outs.append((item['_DEBUG_user_name'], f'Bonus id#{row}', item['_DEBUG_delta']))
